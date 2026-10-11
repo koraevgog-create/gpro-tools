@@ -5,8 +5,9 @@ const KEY = 'gpro-my-budget-v1'; // Retain the v1 key to preserve existing trans
 const LIMIT_KEY = 'gpro-my-budget-limits-v1';
 const CATEGORIES = {
   expense: ['Продукты', 'Жильё', 'Транспорт', 'Здоровье', 'Семья', 'Развлечения', 'Покупки', 'Другое'],
-  income: ['Зарплата', 'Подработка', 'Подарки', 'Возвраты', 'Другое']
+  income: ['Зарплата', 'Подработка', 'Доп доход 1', 'Доп доход 2', 'Подарки', 'Другое']
 };
+const validCategory = (type, category) => CATEGORIES[type]?.includes(category) || (type === 'income' && category === 'Возвраты');
 const fmt = n => n.toLocaleString('ru-RU', {style: 'currency', currency: 'RUB', maximumFractionDigits: 2});
 const today = () => {
   const d = new Date();
@@ -59,7 +60,8 @@ function updateCategories() {
 function updateFilterCategories() {
   const previous = $('filterCategory').value;
   const type = $('filterType').value;
-  const names = type === 'all' ? [...new Set([...CATEGORIES.expense, ...CATEGORIES.income])] : CATEGORIES[type];
+  const legacy = entries.some(e => e.type === 'income' && e.category === 'Возвраты') ? ['Возвраты'] : [];
+  const names = type === 'all' ? [...new Set([...CATEGORIES.expense, ...CATEGORIES.income, ...legacy])] : [...CATEGORIES[type], ...(type === 'income' ? legacy : [])];
   $('filterCategory').replaceChildren(option('all', 'Все категории'), ...names.map(x => option(x)));
   $('filterCategory').value = names.includes(previous) ? previous : 'all';
 }
@@ -79,6 +81,7 @@ function editEntry(id) {
   $('editingId').value = item.id;
   $('type').value = item.type;
   updateCategories();
+  if (!CATEGORIES[item.type].includes(item.category)) $('category').append(option(item.category));
   $('category').value = item.category;
   $('amount').value = (item.cents / 100).toFixed(2);
   $('date').value = item.date;
@@ -277,7 +280,7 @@ function validBackup(data) {
   for (const e of data.entries) {
     if (!e || typeof e.id !== 'string' || !e.id || e.id.length > 120 || ids.has(e.id) ||
         !['income', 'expense'].includes(e.type) || !validDate(e.date) ||
-        !CATEGORIES[e.type].includes(e.category) || !Number.isSafeInteger(e.cents) ||
+        !validCategory(e.type, e.category) || !Number.isSafeInteger(e.cents) ||
         e.cents <= 0 || e.cents > 1e14 || (e.note != null && (typeof e.note !== 'string' || e.note.length > 120))) return false;
     ids.add(e.id);
   }
@@ -374,7 +377,7 @@ $('operationForm').addEventListener('submit', event => {
   const date = $('date').value, type = $('type').value, category = $('category').value;
   const note = $('note').value.trim();
   const isValidDate = validDate(date);
-  if (cents === null || !isValidDate || !CATEGORIES[type]?.includes(category)) {
+  if (cents === null || !isValidDate || !validCategory(type, category)) {
     $('formError').textContent = 'Проверь сумму, дату и категорию.';
     return;
   }

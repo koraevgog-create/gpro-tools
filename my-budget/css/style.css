@@ -186,3 +186,21 @@ input:focus,select:focus{border-color:#84caff}
 .fold[open] .fold-chevron{transform:none}
 .fold[open] .fold-chevron::after{transform:translateY(3px) rotate(225deg)}
 @media(prefers-reduced-motion:reduce){.fold-chevron::after{transition:none}}
+
+/* Level 6 / personalization */
+.preferences{margin:18px 0}
+.preferences-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin-top:20px}
+.preferences-grid>label{display:flex;flex-direction:column;gap:8px;color:#b9c9df;font-size:13px;min-width:0}
+.preferences-grid .pref-check{display:flex;flex-direction:row;align-items:center;gap:12px;padding:14px;border:1px solid #304761;background:#11243a;border-radius:12px}
+.pref-check input{width:20px;height:20px;min-width:20px;accent-color:#72bff3}
+#settingsMessage{min-height:16px;margin-top:15px;color:#83e1b8}
+.compact-mode .panel{padding:15px}
+.compact-mode .tile{padding:15px}
+.compact-mode .summary,.compact-mode .layout,.compact-mode .fields{gap:10px}
+.compact-mode .insight-grid>div{padding:12px}
+.compact-mode .entry,.compact-mode .simple-item,.compact-mode .limit-item{padding:9px 11px}
+.compact-mode .breakdown{gap:10px}
+.compact-mode .intro{margin:26px 0 16px}
+.compact-mode .insights{margin:12px 0}
+@media(max-width:620px){.preferences-grid{grid-template-columns:1fr}}
+@media(max-width:760px){.compact-mode .panel{padding:13px}.compact-mode .tile{padding:12px}}

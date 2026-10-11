@@ -346,8 +346,38 @@ function validBackup(data) {
 }
 $('prevMonth').addEventListener('click', () => { $('month').value = shiftMonth($('month').value, -1); rememberMonth(); resetEditor(); render(); });
 $('nextMonth').addEventListener('click', () => { $('month').value = shiftMonth($('month').value, 1); rememberMonth(); resetEditor(); render(); });
+function currentBackup(){
+  return {app:'gpro-my-budget',version:3,exportedAt:new Date().toISOString(),entries,limits,plans,recurring,preferences:prefs};
+}
+function checkStoredData(){
+  const keys=[KEY,LIMIT_KEY,PLAN_KEY,RECUR_KEY,PREF_KEY];
+  const raw={};
+  try {
+    for(const key of keys){
+      const value=localStorage.getItem(key);
+      raw[key]=value===null?null:JSON.parse(value);
+    }
+    const snapshot={
+      app:'gpro-my-budget',version:3,
+      entries:raw[KEY]??[],limits:raw[LIMIT_KEY]??{},
+      plans:raw[PLAN_KEY]??[],recurring:raw[RECUR_KEY]??[],
+      preferences:raw[PREF_KEY]??{...PREF_DEFAULTS}
+    };
+    if(!validBackup(snapshot))return {ok:false,message:'Найдены некорректные данные в хранилище. Скачай резервную копию перед изменениями.'};
+    if(!validBackup(currentBackup()))return {ok:false,message:'Часть загруженных данных не прошла проверку. Скачай резервную копию.'};
+    return {ok:true,message:'Проверка пройдена: '+entries.length+' операций, '+plans.length+' планов, '+recurring.length+' регулярных шаблонов. Хранилище доступно. Для защиты от потери устройства скачай резервную копию.'};
+  }catch{
+    return {ok:false,message:'Не удалось прочитать все данные из хранилища браузера. Скачай резервную копию и проверь настройки браузера.'};
+  }
+}
+$('dataCheck').addEventListener('click',()=>{
+  const result=checkStoredData();
+  $('dataCheckMessage').textContent=result.message;
+  $('dataCheckMessage').classList.toggle('negative',!result.ok);
+  $('dataCheckMessage').classList.toggle('positive',result.ok);
+});
 $('backupExport').addEventListener('click', () => {
-  downloadJSON({app: 'gpro-my-budget', version: 3, exportedAt: new Date().toISOString(), entries, limits, plans, recurring, preferences:prefs},
+  downloadJSON(currentBackup(),
     'gpro-budget-backup-' + today() + '.json');
   $('backupMessage').textContent = 'Резервная копия подготовлена для скачивания.';
 });
@@ -449,11 +479,22 @@ function renderRecurring() {
   }
 }
 function savePair(pairs,errorId){
-  const previous=pairs.map(([key])=>[key,localStorage.getItem(key)]);
+  let previous;
+  try {previous=pairs.map(([key])=>[key,localStorage.getItem(key)]);}
+  catch {
+    $(errorId).textContent='Нет доступа к хранилищу браузера. Данные не заменены.';
+    return false;
+  }
   try {for(const [key,value] of pairs)localStorage.setItem(key,JSON.stringify(value));return true;}
   catch {
-    try{for(const [key,value] of previous){if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value);}}catch{}
-    $(errorId).textContent='Не удалось сохранить изменения. Проверь настройки браузера.';
+    let rollbackOK=true;
+    for(const [key,value] of previous){
+      try{if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value);}
+      catch{rollbackOK=false;}
+    }
+    $(errorId).textContent=rollbackOK
+      ? 'Не удалось сохранить изменения. Прежние данные восстановлены.'
+      : 'Ошибка сохранения: часть данных могла измениться. Не закрывай вкладку, скачай резервную копию и проверь данные.';
     return false;
   }
 }

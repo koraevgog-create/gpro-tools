@@ -216,3 +216,9 @@ input:focus,select:focus{border-color:#84caff}
 #dataCheckMessage{min-height:20px;line-height:1.55;margin:8px 0 10px}
 #dataCheckMessage.positive{color:#8be4c5}
 #dataCheckMessage.negative{color:#ffb1b7}
+
+/* Level 7.1: damaged storage notice */
+.storage-alert{border:1px solid #b56b65;background:#33232e;margin:18px 0}
+.storage-alert h2{color:#ffcbbe;margin:0 0 10px}
+.storage-alert p{line-height:1.6}
+.storage-alert[hidden],#insightsPanel[hidden],#breakdownPanel[hidden]{display:none!important}

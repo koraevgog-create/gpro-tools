@@ -175,7 +175,7 @@ function renderLimits(totals) {
   $('totalLimitProgress').style.width = (totalLimit ? Math.min(100, totalSpent / totalLimit * 100) : 0) + '%';
   $('limitSummary').classList.toggle('over', totalLimit > 0 && remaining < 0);
   $('limitSummaryNote').textContent = totalLimit
-    ? 'Общий лимит — сумма установленных лимитов. В расходах учитываются все категории, даже без отдельного лимита.'
+    ? 'Остаток по плану = сумма лимитов минус все расходы, включая категории без лимита. Это не баланс денежных средств.'
     : 'Установи лимиты по категориям, чтобы увидеть их общую сумму и остаток.';
   if (!configured.length) {
     root.append(element('div', 'Лимиты пока не заданы. Выбери категорию и установи сумму.', 'empty'));
@@ -191,7 +191,17 @@ function renderLimits(totals) {
     const fill = document.createElement('div');
     fill.style.width = Math.min(100, spent / cap * 100) + '%';
     meter.append(fill);
-    item.append(row, meter, element('small', exceeded ? 'Лимит превышен на ' + fmt((spent - cap) / 100) : 'Осталось ' + fmt((cap - spent) / 100), exceeded ? 'warning' : 'hint'));
+    const details=element('small', exceeded ? 'Лимит превышен на ' + fmt((spent - cap) / 100) : 'Осталось ' + fmt((cap - spent) / 100), exceeded ? 'warning' : 'hint');
+    const edit=element('button','Изменить лимит','button secondary limit-edit');
+    edit.type='button';
+    edit.setAttribute('aria-label','Изменить лимит: '+name);
+    edit.addEventListener('click',()=>{
+      $('limitCategory').value=name;
+      $('limitAmount').value=(cap/100).toFixed(2);
+      $('limitMessage').textContent='Редактирование лимита «'+name+'» за '+month+'.';
+      $('limitAmount').focus();
+    });
+    item.append(row,meter,details,edit);
     root.append(item);
   }
 }
@@ -482,7 +492,7 @@ $('copyLimits').addEventListener('click',()=>{
   if(Object.keys(limits[month]||{}).length && !confirm('Заменить лимиты текущего месяца лимитами прошлого?'))return;
   const next={...limits,[month]:{...source}};
   if(!save(LIMIT_KEY,next,'limitError'))return;
-  limits=next;$('limitError').textContent='Лимиты скопированы.';renderLimits(categoryTotals(monthly()));
+  limits=next;$('limitError').textContent='';$('limitMessage').textContent='Лимиты прошлого месяца скопированы.';renderLimits(categoryTotals(monthly()));
 });
 
 function render() {
@@ -563,6 +573,7 @@ $('date').value = today();
 $('limitCategory').replaceChildren(...CATEGORIES.expense.map(x => option(x)));
 updateCategories();
 updateFilterCategories();
+$('limitCategory').addEventListener('change',()=>{$('limitAmount').value='';$('limitMessage').textContent='';});
 $('type').addEventListener('change', updateCategories);
 for (const [id,type] of [['quickExpense','expense'],['quickIncome','income']]) {
   $(id).addEventListener('click',()=>{
@@ -581,6 +592,7 @@ $('operationForm').addEventListener('keydown',event=>{
 $('month').addEventListener('change', () => {
   resetEditor();
   $('limitAmount').value = '';
+  $('limitMessage').textContent = '';
   rememberMonth();
   render();
 });
@@ -640,6 +652,7 @@ $('limitForm').addEventListener('submit', event => {
   if (!save(LIMIT_KEY, next, 'limitError')) return;
   limits = next;
   $('limitAmount').value = '';
+  $('limitMessage').textContent = cents === 0 ? 'Лимит категории «'+category+'» удалён.' : 'Лимит категории «'+category+'» сохранён: '+fmt(cents/100)+'.';
   renderLimits(categoryTotals(monthly()));
 });
 $('export').addEventListener('click', () => {

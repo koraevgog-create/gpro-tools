@@ -448,57 +448,6 @@ function validExtra(item, kind) {
     (kind === 'plan' ? /^\d{4}-(0[1-9]|1[0-2])$/.test(item.month) :
       Number.isInteger(item.day) && item.day >= 1 && item.day <= 31);
 }
-function renderPlans() {
-  const month = $('month').value, items = plans.filter(p => p.month === month);
-  const actual = monthStats(month);
-  const projected = {income: actual.income, expense: actual.expense};
-  for (const p of items) projected[p.type] += p.cents;
-  $('forecastIncome').textContent = fmt(projected.income / 100);
-  $('forecastExpense').textContent = fmt(projected.expense / 100);
-  $('forecastBalance').textContent = fmt((projected.income - projected.expense) / 100);
-  $('forecastBalance').className = projected.income < projected.expense ? 'negative' : 'positive';
-  const root = $('planList'); root.replaceChildren();
-  if (!items.length) { root.append(element('p','Нет запланированных операций на этот месяц.','hint')); return; }
-  for (const p of items) {
-    const row = element('div','','simple-item');
-    const detail = element('div', (p.type === 'income' ? 'Доход · ' : 'Расход · ') + p.category + ' · ' + fmt(p.cents / 100));
-    if (p.note) detail.append(element('small',p.note,'hint'));
-    const actions = element('div','','simple-actions');
-    const done = element('button','Внести в факт','button secondary');
-    done.type='button';
-    done.addEventListener('click',()=>{
-      const monthNow = $('month').value;
-      const date = monthNow + '-' + String(Math.min(Number(today().slice(8,10)),new Date(Number(monthNow.slice(0,4)),Number(monthNow.slice(5,7)),0).getDate())).padStart(2,'0');
-      const nextEntries = [...entries,{id:uid(),type:p.type,cents:p.cents,date,category:p.category,note:p.note}];
-      const nextPlans = plans.filter(x=>x.id!==p.id);
-      if (!savePair([[KEY,nextEntries],[PLAN_KEY,nextPlans]],'planError')) return;
-      entries=nextEntries; plans=nextPlans; render();
-    });
-    const remove=element('button','Удалить','button danger');
-    remove.type='button';remove.addEventListener('click',()=>{
-      const next=plans.filter(x=>x.id!==p.id);
-      if(!save(PLAN_KEY,next,'planError'))return;
-      plans=next;render();
-    });
-    actions.append(done,remove);row.append(detail,actions);root.append(row);
-  }
-}
-function renderRecurring() {
-  const root=$('recurringList');root.replaceChildren();
-  if(!recurring.length)root.append(element('p','Регулярных шаблонов пока нет.','hint'));
-  for(const template of recurring){
-    const row=element('div','','simple-item');
-    const detail=element('div',(template.type==='income'?'Доход · ':'Расход · ')+template.category+' · '+fmt(template.cents/100)+' · '+template.day+'-е число');
-    if(template.note)detail.append(element('small',template.note,'hint'));
-    const remove=element('button','Удалить шаблон','button danger');
-    remove.type='button';remove.addEventListener('click',()=>{
-      const next=recurring.filter(x=>x.id!==template.id);
-      if(!save(RECUR_KEY,next,'recurringError'))return;
-      recurring=next;renderRecurring();
-    });
-    row.append(detail,remove);root.append(row);
-  }
-}
 function savePair(pairs,errorId){
   let previous;
   try {previous=pairs.map(([key])=>[key,localStorage.getItem(key)]);}
@@ -519,39 +468,6 @@ function savePair(pairs,errorId){
     return false;
   }
 }
-$('planType').addEventListener('change',()=>populateCategory('planCategory','planType'));
-$('recurringType').addEventListener('change',()=>populateCategory('recurringCategory','recurringType'));
-populateCategory('planCategory','planType');
-populateCategory('recurringCategory','recurringType');
-$('planForm').addEventListener('submit',event=>{
-  event.preventDefault();$('planError').textContent='';
-  const item={id:uid(),month:$('month').value,type:$('planType').value,category:$('planCategory').value,cents:centsFrom($('planAmount').value),note:$('planNote').value.trim()};
-  if(!validExtra(item,'plan')){$('planError').textContent='Проверь поля плана.';return;}
-  const next=[...plans,item];if(!save(PLAN_KEY,next,'planError'))return;
-  plans=next;$('planAmount').value='';$('planNote').value='';render();
-});
-$('recurringForm').addEventListener('submit',event=>{
-  event.preventDefault();$('recurringError').textContent='';
-  const item={id:uid(),type:$('recurringType').value,category:$('recurringCategory').value,cents:centsFrom($('recurringAmount').value),day:Number($('recurringDay').value),note:$('recurringNote').value.trim()};
-  if(!validExtra(item,'recurring')){$('recurringError').textContent='Проверь поля шаблона.';return;}
-  const next=[...recurring,item];if(!save(RECUR_KEY,next,'recurringError'))return;
-  recurring=next;$('recurringAmount').value='';$('recurringNote').value='';renderRecurring();
-});
-$('applyRecurring').addEventListener('click',()=>{
-  const month=$('month').value,year=Number(month.slice(0,4)),m=Number(month.slice(5,7));
-  const last=new Date(year,m,0).getDate();
-  const next=[...entries];let count=0;
-  for(const t of recurring){
-    if(next.some(e=>e.recurringId===t.id && e.date.slice(0,7)===month))continue;
-    next.push({id:uid(),type:t.type,category:t.category,cents:t.cents,
-      date:month+'-'+String(Math.min(t.day,last)).padStart(2,'0'),note:t.note,recurringId:t.id});
-    count++;
-  }
-  if(!count){$('recurringMessage').textContent='Новых операций нет: шаблоны уже внесены или список пуст.';return;}
-  if(!save(KEY,next,'recurringError'))return;
-  entries=next;render();
-  $('recurringMessage').textContent='Добавлено операций: '+count+'. Повторное нажатие не создаст дубли.';
-});
 $('copyLimits').addEventListener('click',()=>{
   const month=$('month').value,source=limits[shiftMonth(month,-1)]||{};
   if(!Object.keys(source).length){$('limitError').textContent='В прошлом месяце лимиты не установлены.';return;}
@@ -574,8 +490,6 @@ function render() {
   renderLimits(totals);
   renderHistory(data);
   renderInsights();
-  renderPlans();
-  renderRecurring();
 }
 function applyPrefs() {
   document.body.classList.toggle('compact-mode',prefs.density==='compact');

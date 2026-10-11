@@ -530,7 +530,7 @@ function persistPrefs() {
 function rememberMonth() {
   if (prefs.startMonth !== 'last' || !/^\\d{4}-(0[1-9]|1[0-2])$/.test($('month').value)) return;
   prefs.lastMonth=$('month').value;
-  persistPrefs();
+  try {localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch{}
 }
 for (const [id,key] of [['prefDensity','density'],['prefDefaultType','defaultType'],['prefStartMonth','startMonth']]) {
   $(id).addEventListener('change',()=>{
@@ -556,6 +556,7 @@ for(const fold of document.querySelectorAll('details.fold')){
 }
 $('month').value = prefs.startMonth==='last' && prefs.lastMonth ? prefs.lastMonth : today().slice(0, 7);
 applyPrefs();
+$('type').value = prefs.defaultType;
 $('date').value = today();
 $('limitCategory').replaceChildren(...CATEGORIES.expense.map(x => option(x)));
 updateCategories();

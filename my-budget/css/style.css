@@ -211,3 +211,8 @@ input:focus,select:focus{border-color:#84caff}
 .pref-actions{margin-top:18px}
 .pref-actions .hint{line-height:1.5}
 @media(max-width:520px){.pref-actions .button{width:100%}}
+
+/* Level 7: storage integrity feedback */
+#dataCheckMessage{min-height:20px;line-height:1.55;margin:8px 0 10px}
+#dataCheckMessage.positive{color:#8be4c5}
+#dataCheckMessage.negative{color:#ffb1b7}

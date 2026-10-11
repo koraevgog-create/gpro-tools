@@ -179,3 +179,10 @@ input:focus,select:focus{border-color:#84caff}
 @media(max-width:520px){.tile span{font-size:12px}.trend-bars{height:112px}.trend-bar{width:16px}.trend-item small{font-size:10px}}
 @media(max-width:390px){.summary{grid-template-columns:1fr 1fr}.summary .tile:last-child{grid-column:1/-1}.tile strong{font-size:22px}.toolbar input[type=month]{max-width:none}}
 @media(prefers-reduced-motion:reduce){.button,.fold>summary h2{transition:none}.fold[open] .fold-body{animation:none}}
+
+/* v0.5.1: center disclosure chevrons reliably across browsers */
+.fold-chevron{font-size:0!important;line-height:0;position:relative;overflow:hidden}
+.fold-chevron::after{content:'';display:block;width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .18s ease}
+.fold[open] .fold-chevron{transform:none}
+.fold[open] .fold-chevron::after{transform:translateY(3px) rotate(225deg)}
+@media(prefers-reduced-motion:reduce){.fold-chevron::after{transition:none}}

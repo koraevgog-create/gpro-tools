@@ -5,6 +5,7 @@ const KEY = 'gpro-my-budget-v1'; // Retain the v1 key to preserve existing trans
 const LIMIT_KEY = 'gpro-my-budget-limits-v1';
 const PLAN_KEY = 'gpro-my-budget-plans-v1';
 const RECUR_KEY = 'gpro-my-budget-recurring-v1';
+const PREF_KEY = 'gpro-my-budget-preferences-v1';
 const CATEGORIES = {
   expense: ['Продукты', 'Жильё', 'Транспорт', 'Здоровье', 'Семья', 'Развлечения', 'Покупки', 'Другое'],
   income: ['Зарплата', 'Подработка', 'Доп доход 1', 'Доп доход 2', 'Подарки', 'Другое']
@@ -26,6 +27,20 @@ function readStorage(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; }
   catch { return fallback; }
 }
+const PREF_DEFAULTS = Object.freeze({density:'comfortable',defaultType:'expense',startMonth:'current',rememberSections:false,lastMonth:'' ,sections:{}});
+function validPrefs(p) {
+  return p && typeof p === 'object' && !Array.isArray(p) &&
+    ['comfortable','compact'].includes(p.density) &&
+    ['expense','income'].includes(p.defaultType) &&
+    ['current','last'].includes(p.startMonth) &&
+    typeof p.rememberSections === 'boolean' &&
+    (p.lastMonth === '' || /^\\d{4}-(0[1-9]|1[0-2])$/.test(p.lastMonth)) &&
+    p.sections && typeof p.sections === 'object' && !Array.isArray(p.sections) &&
+    Object.keys(p.sections).length <= 10 &&
+    Object.values(p.sections).every(x=>typeof x==='boolean');
+}
+const storedPrefs = readStorage(PREF_KEY, null);
+let prefs = validPrefs(storedPrefs) ? storedPrefs : {...PREF_DEFAULTS};
 const saved = readStorage(KEY, []);
 let entries = Array.isArray(saved) ? saved.filter(x =>
   x && typeof x.id === 'string' && ['income', 'expense'].includes(x.type) &&
@@ -82,6 +97,7 @@ function updateFilterCategories() {
 function resetEditor() {
   $('editingId').value = '';
   $('operationForm').reset();
+  $('type').value = prefs.defaultType;
   $('date').value = today();
   updateCategories();
   $('formHeading').textContent = 'Добавить операцию';
@@ -298,7 +314,7 @@ function validDate(value) {
     date.getDate() === Number(value.slice(8, 10));
 }
 function validBackup(data) {
-  if (!data || data.app !== 'gpro-my-budget' || ![1,2].includes(data.version) ||
+  if (!data || data.app !== 'gpro-my-budget' || ![1,2,3].includes(data.version) ||
       !Array.isArray(data.entries) || data.entries.length > 20000 ||
       !data.limits || typeof data.limits !== 'object' || Array.isArray(data.limits)) return false;
   const ids = new Set();
@@ -317,18 +333,19 @@ function validBackup(data) {
       if (!CATEGORIES.expense.includes(name) || !Number.isSafeInteger(cents) || cents < 0 || cents > 1e14) return false;
     }
   }
-  if (data.version === 2) {
+  if (data.version >= 2) {
     if (!Array.isArray(data.plans) || data.plans.length > 20000 || !data.plans.every(p=>validExtra(p,'plan')) ||
         !Array.isArray(data.recurring) || data.recurring.length > 2000 || !data.recurring.every(t=>validExtra(t,'recurring'))) return false;
     if (new Set(data.plans.map(p=>p.id)).size !== data.plans.length ||
         new Set(data.recurring.map(t=>t.id)).size !== data.recurring.length) return false;
   }
+  if (data.version === 3 && !validPrefs(data.preferences)) return false;
   return true;
 }
-$('prevMonth').addEventListener('click', () => { $('month').value = shiftMonth($('month').value, -1); resetEditor(); render(); });
-$('nextMonth').addEventListener('click', () => { $('month').value = shiftMonth($('month').value, 1); resetEditor(); render(); });
+$('prevMonth').addEventListener('click', () => { $('month').value = shiftMonth($('month').value, -1); rememberMonth(); resetEditor(); render(); });
+$('nextMonth').addEventListener('click', () => { $('month').value = shiftMonth($('month').value, 1); rememberMonth(); resetEditor(); render(); });
 $('backupExport').addEventListener('click', () => {
-  downloadJSON({app: 'gpro-my-budget', version: 2, exportedAt: new Date().toISOString(), entries, limits, plans, recurring},
+  downloadJSON({app: 'gpro-my-budget', version: 3, exportedAt: new Date().toISOString(), entries, limits, plans, recurring, preferences:prefs},
     'gpro-budget-backup-' + today() + '.json');
   $('backupMessage').textContent = 'Резервная копия подготовлена для скачивания.';
 });
@@ -342,14 +359,17 @@ $('backupImport').addEventListener('change', async event => {
   try {
     const data = JSON.parse(await file.text());
     if (!validBackup(data)) { msg.textContent = 'Неверный формат или содержимое резервной копии.'; return; }
-    if (!confirm('Заменить все текущие операции, лимиты, планы и шаблоны данными из резервной копии? Это действие нельзя отменить.')) return;
-    const restoredPlans = data.version === 2 ? data.plans : [];
-    const restoredRecurring = data.version === 2 ? data.recurring : [];
-    if (!savePair([[KEY,data.entries],[LIMIT_KEY,data.limits],[PLAN_KEY,restoredPlans],[RECUR_KEY,restoredRecurring]],'backupMessage')) return;
+    if (!confirm('Заменить текущие операции, лимиты, планы, шаблоны и настройки данными из резервной копии? Это действие нельзя отменить.')) return;
+    const restoredPlans = data.version >= 2 ? data.plans : [];
+    const restoredRecurring = data.version >= 2 ? data.recurring : [];
+    const restoredPrefs = data.version === 3 ? data.preferences : prefs;
+    if (!savePair([[KEY,data.entries],[LIMIT_KEY,data.limits],[PLAN_KEY,restoredPlans],[RECUR_KEY,restoredRecurring],[PREF_KEY,restoredPrefs]],'backupMessage')) return;
     entries = data.entries;
     limits = data.limits;
     plans = restoredPlans;
     recurring = restoredRecurring;
+    prefs = restoredPrefs;
+    applyPrefs();
     resetEditor();
     updateFilterCategories();
     render();
@@ -492,7 +512,50 @@ function render() {
   renderPlans();
   renderRecurring();
 }
-$('month').value = today().slice(0, 7);
+function applyPrefs() {
+  document.body.classList.toggle('compact-mode',prefs.density==='compact');
+  $('prefDensity').value=prefs.density;
+  $('prefDefaultType').value=prefs.defaultType;
+  $('prefStartMonth').value=prefs.startMonth;
+  $('prefRememberSections').checked=prefs.rememberSections;
+  for (const fold of document.querySelectorAll('details.fold')) {
+    if (fold.id && fold.id !== 'settingsFold')
+      fold.open = prefs.rememberSections ? Boolean(prefs.sections[fold.id]) : false;
+  }
+}
+function persistPrefs() {
+  try {localStorage.setItem(PREF_KEY,JSON.stringify(prefs));$('settingsMessage').textContent='Настройки сохранены.';}
+  catch {$('settingsMessage').textContent='Не удалось сохранить настройки в этом браузере.';}
+}
+function rememberMonth() {
+  if (prefs.startMonth !== 'last' || !/^\\d{4}-(0[1-9]|1[0-2])$/.test($('month').value)) return;
+  prefs.lastMonth=$('month').value;
+  persistPrefs();
+}
+for (const [id,key] of [['prefDensity','density'],['prefDefaultType','defaultType'],['prefStartMonth','startMonth']]) {
+  $(id).addEventListener('change',()=>{
+    prefs={...prefs,[key]:$(id).value};
+    if(key==='startMonth' && prefs.startMonth==='last')prefs.lastMonth=$('month').value;
+    applyPrefs();persistPrefs();
+    if(key==='defaultType' && !$('editingId').value)resetEditor();
+  });
+}
+$('prefRememberSections').addEventListener('change',()=>{
+  prefs={...prefs,rememberSections:$('prefRememberSections').checked};
+  if(prefs.rememberSections){
+    prefs.sections=Object.fromEntries([...document.querySelectorAll('details.fold')].filter(x=>x.id && x.id!=='settingsFold').map(x=>[x.id,x.open]));
+  }
+  persistPrefs();
+});
+for(const fold of document.querySelectorAll('details.fold')){
+  if(fold.id && fold.id!=='settingsFold')fold.addEventListener('toggle',()=>{
+    if(!prefs.rememberSections)return;
+    prefs.sections={...prefs.sections,[fold.id]:fold.open};
+    persistPrefs();
+  });
+}
+$('month').value = prefs.startMonth==='last' && prefs.lastMonth ? prefs.lastMonth : today().slice(0, 7);
+applyPrefs();
 $('date').value = today();
 $('limitCategory').replaceChildren(...CATEGORIES.expense.map(x => option(x)));
 updateCategories();
@@ -505,7 +568,7 @@ for (const [id,type] of [['quickExpense','expense'],['quickIncome','income']]) {
 }
 $('todayDate').addEventListener('click',()=>{$('date').value=today();});
 $('currentMonth').addEventListener('click',()=>{
-  $('month').value=today().slice(0,7);resetEditor();render();
+  $('month').value=today().slice(0,7);rememberMonth();resetEditor();render();
 });
 $('operationForm').addEventListener('keydown',event=>{
   if ((event.ctrlKey || event.metaKey) && event.key==='Enter') {
@@ -515,6 +578,7 @@ $('operationForm').addEventListener('keydown',event=>{
 $('month').addEventListener('change', () => {
   resetEditor();
   $('limitAmount').value = '';
+  rememberMonth();
   render();
 });
 $('filterType').addEventListener('change', () => { updateFilterCategories(); renderHistory(monthly()); });
@@ -552,6 +616,7 @@ $('operationForm').addEventListener('submit', event => {
   entries = next;
   resetEditor();
   $('month').value = date.slice(0, 7);
+  rememberMonth();
   render();
   $('operationMessage').textContent = wasEditing ? 'Изменения сохранены.' : 'Операция добавлена. Можно сразу внести следующую.';
   $('amount').focus({preventScroll:true});

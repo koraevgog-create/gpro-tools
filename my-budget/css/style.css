@@ -204,3 +204,10 @@ input:focus,select:focus{border-color:#84caff}
 .compact-mode .insights{margin:12px 0}
 @media(max-width:620px){.preferences-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.compact-mode .panel{padding:13px}.compact-mode .tile{padding:12px}}
+
+/* Level 6.1: dashboard visibility and settings reset */
+.layout.single-column{grid-template-columns:minmax(0,1fr)}
+.layout.single-column>section{max-width:760px}
+.pref-actions{margin-top:18px}
+.pref-actions .hint{line-height:1.5}
+@media(max-width:520px){.pref-actions .button{width:100%}}

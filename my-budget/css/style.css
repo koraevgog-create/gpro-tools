@@ -130,3 +130,52 @@
  .quick-types .button{min-height:52px}
 }
 @media(max-width:390px){.toolbar{gap:8px}.toolbar label{width:100%}.toolbar input[type=month]{flex:1 1 100%}.toolbar #prevMonth,.toolbar #nextMonth{flex:1}.toolbar #currentMonth{flex:1}}
+
+/* Level 5 / visual direction v0.5.0: restrained financial dashboard */
+:root{--surface:#111e32;--surface-raised:#172840;--line:#2b405a;--muted:#a8bdd5;--mint:#77e2c0;--coral:#ffacb3;--blue:#85caff}
+body{background:radial-gradient(ellipse 78% 460px at 50% -130px,#244d6e 0%,#13253a 50%,transparent 100%),#0b1220}
+.shell{max-width:1200px}
+.header{padding:10px 0 19px;border-bottom:1px solid rgba(146,185,223,.15)}
+.logo{letter-spacing:.2px}.mark{box-shadow:0 6px 28px rgba(95,185,240,.22)}
+.intro{margin:40px 0 25px}.intro h1{font-weight:850;letter-spacing:-2.6px;line-height:1.08}
+.intro h1 span{background:linear-gradient(110deg,#8be0ff,#91b7ff);background-clip:text;-webkit-background-clip:text;color:transparent}
+.intro p{max-width:660px}.eyebrow{letter-spacing:1.35px}
+.toolbar{background:rgba(19,35,56,.75);border:1px solid #314963;border-radius:16px;padding:12px 14px;gap:10px}
+.toolbar input[type=month]{max-width:185px}.toolbar .button{white-space:nowrap}
+.summary{gap:16px;margin:20px 0}
+.tile{position:relative;overflow:hidden;padding:24px 24px 22px;border-radius:18px;background:linear-gradient(145deg,#182d45,#111e32 70%);box-shadow:0 12px 36px rgba(0,0,0,.12)}
+.tile:before{content:'';position:absolute;top:0;left:22px;right:22px;height:3px;border-radius:0 0 8px 8px;background:#81c8ff}
+.tile:nth-child(1):before{background:var(--mint)}.tile:nth-child(2):before{background:var(--coral)}
+.tile span{font-weight:650;letter-spacing:.2px;color:#c4d3e6}
+.tile strong{font-size:clamp(23px,2.7vw,34px);letter-spacing:-.7px;margin-top:13px}
+.tile:nth-child(1) strong{color:var(--mint)}.tile:nth-child(2) strong{color:var(--coral)}
+.tile:nth-child(3){background:linear-gradient(120deg,#1b3951,#15243c 70%);border-color:#3b5e79}
+.panel{background:linear-gradient(160deg,#14243a,#101c2e 90%);border-color:#2d435e;box-shadow:0 8px 24px rgba(0,0,0,.07)}
+.panel-title{gap:12px}.panel-title h2,.panel>h2{letter-spacing:-.35px}
+.insights{margin:20px 0}.insight-grid{gap:12px}
+.insight-grid>div{background:#101d30;border-color:#30455f;border-radius:14px;padding:19px}
+.insight-grid strong{letter-spacing:-.55px}
+.trend{padding:18px 12px 10px;border:1px solid #2c425c;background:linear-gradient(180deg,#12243a,#101c2d);border-radius:15px;gap:16px}
+.trend-bars{background:repeating-linear-gradient(to top,rgba(163,191,223,.1) 0px,rgba(163,191,223,.1) 1px,transparent 1px,transparent 30px);border-bottom:1px solid #4c6580;border-radius:0;height:138px;padding:5px 5px 0;gap:8px}
+.trend-bar{border-radius:6px 6px 0 0;min-width:4px;box-shadow:0 -3px 14px rgba(0,0,0,.08)}
+.trend-bar.income{background:linear-gradient(180deg,#9bf0d2,#4eaf9b)}
+.trend-bar.expense{background:linear-gradient(180deg,#b0c3ff,#6d89df)}
+.trend-item small{font-weight:650;color:#b7cce3}
+.trend:after{color:#b7cce3}
+.button{transition:filter .16s ease,transform .16s ease,background-color .16s ease}
+@media(hover:hover){.button:active{transform:translateY(1px)}}
+input,select{background:#0d1b2d;border-color:#3d5571}
+input:focus,select:focus{border-color:#84caff}
+.quick-types .button.active{box-shadow:0 0 0 2px rgba(130,203,248,.15)}
+.fold>summary{border-radius:10px}.fold>summary h2{transition:color .16s ease}
+.fold-chevron{background:#1b304a}
+.fold[open] .fold-body{animation:fade-in .18s ease}
+@keyframes fade-in{from{opacity:.45;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
+.forecast-grid>div,.limit-summary,.simple-item,.limit-item,.history-day .entry{box-shadow:0 3px 14px rgba(0,0,0,.05)}
+.history-day-title{color:#d4e7f9;font-weight:800}
+.entry strong{font-variant-numeric:tabular-nums}
+.tg{border-color:#34546c}
+@media(max-width:760px){.intro{margin-top:28px}.toolbar{padding:12px}.summary{gap:9px}.tile{padding:16px}.tile strong{font-size:clamp(19px,4vw,25px)}.trend{padding:14px 8px 8px;gap:7px}.trend-bars{gap:4px}}
+@media(max-width:520px){.tile span{font-size:12px}.trend-bars{height:112px}.trend-bar{width:16px}.trend-item small{font-size:10px}}
+@media(max-width:390px){.summary{grid-template-columns:1fr 1fr}.summary .tile:last-child{grid-column:1/-1}.tile strong{font-size:22px}.toolbar input[type=month]{max-width:none}}
+@media(prefers-reduced-motion:reduce){.button,.fold>summary h2{transition:none}.fold[open] .fold-body{animation:none}}

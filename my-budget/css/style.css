@@ -93,3 +93,19 @@
 .fold>summary:focus-visible{outline:2px solid #8bcaff;outline-offset:6px;border-radius:6px}
 .fold-body{padding-top:12px}
 @media(max-width:560px){.fold>summary{flex-wrap:wrap}.fold>summary .hint{order:3;flex-basis:100%;margin-left:0}.fold-chevron{margin-left:auto}}
+
+/* Level 4: fast entry and touch-friendly controls */
+.quick-types{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:-3px 0 20px}
+.quick-types .button{background:#22374f;color:#c5d8ed;border:1px solid #36516f;min-height:48px}
+.quick-types .button.active{background:#72bff3;color:#0c1b2e;border-color:#72bff3}
+.date-control{display:flex;gap:8px;min-width:0}
+.date-control input{flex:1;min-width:0}
+.date-control .button{flex-shrink:0;font-size:12px;padding:10px 12px}
+#operationMessage{min-height:16px;margin:0 0 12px;color:#83e1b8}
+.keyboard-tip{margin-left:auto}
+.toolbar #currentMonth{margin-left:0}
+.toolbar #export{margin-left:0}
+@media(hover:hover){.button:hover{filter:brightness(1.09)}.fold>summary:hover h2{color:#c1e6ff}}
+@media(max-width:760px){.entry-actions .button,.simple-item .button{min-height:42px}.toolbar .button{min-height:44px}.keyboard-tip{display:none}}
+@media(max-width:480px){.date-control{flex-wrap:wrap}.date-control .button{width:100%}.toolbar #export{width:100%}}
+@media(prefers-reduced-motion:reduce){.fold-chevron,.trend-bar{transition:none}}

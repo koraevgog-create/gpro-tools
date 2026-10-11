@@ -46,7 +46,12 @@ function render(){
   const list=$('debtList');list.replaceChildren();
   if(storageProblem){list.append(el('div','Не удалось прочитать сохранённые данные. Добавление и удаление приостановлены, чтобы не перезаписать их. Проверь настройки браузера.','empty'));return;}
   if(!debts.length){list.append(el('div','Здесь появятся твои долги после добавления первого обязательства.','empty'));return;}
-  for(const debt of debts){
+  const query=$('debtSearch').value.trim().toLocaleLowerCase('ru-RU'),filter=$('debtFilter').value,sort=$('debtSort').value;
+  const visible=debts.filter(d=>(filter==='all'||(filter==='active'?d.amount>0:d.amount===0))&&d.name.toLocaleLowerCase('ru-RU').includes(query))
+    .sort(sort==='name'?(a,b)=>a.name.localeCompare(b.name,'ru'):(a,b)=>sort==='payment'?b.payment-a.payment||b.amount-a.amount:b.amount-a.amount||b.payment-a.payment);
+  $('listCount').textContent=visible.length+' из '+debts.length;
+  if(!visible.length){list.append(el('div','По выбранным фильтрам обязательств нет.','empty'));return;}
+  for(const debt of visible){
     const item=el('article','','debt-item');const header=el('div','','debt-item-top');
     const name=el('strong',debt.name);const edit=el('button','Изменить','button secondary');edit.type='button';edit.addEventListener('click',()=>startEdit(debt.id));const remove=el('button','Удалить','button danger');remove.type='button';remove.setAttribute('aria-label','Удалить '+debt.name);
     remove.addEventListener('click',()=>{
@@ -54,7 +59,15 @@ function render(){
       const next=debts.filter(d=>d.id!==debt.id);
       if(!persist(next))return;debts=next;render();
     });
-    const controls=el('div','','item-actions');controls.append(edit,remove);header.append(name,controls);
+    const controls=el('div','','item-actions');
+    if(debt.amount>0){
+      const payNow=el('button','Внести выплату','button pay-now');
+      payNow.type='button';payNow.addEventListener('click',()=>{
+        $('paymentDebt').value=debt.id;$('paymentMessage').textContent='Выбран долг «'+debt.name+'».';
+        $('paymentPanel').scrollIntoView({behavior:'smooth',block:'start'});$('paymentAmount').focus({preventScroll:true});
+      });controls.append(payNow);
+    }
+    controls.append(edit,remove);header.append(name,controls);
     const figures=el('div','','debt-figures');const amount=el('span','Остаток: ');amount.append(el('b',rub(debt.amount)));
     const pay=el('span',debt.payment>0?'Обязательный платёж/мес.: ':'Без обязательного платежа');if(debt.payment>0)pay.append(el('b',rub(debt.payment)));figures.append(amount,pay);
     if(debt.target>0){const voluntary=el('span','Добровольный план: ');voluntary.append(el('b',rub(debt.target)+'/мес.'));figures.append(voluntary);}
@@ -112,8 +125,14 @@ function renderPayments(){
   for(const d of live){const o=document.createElement('option');o.value=d.id;o.textContent=d.name+' — '+rub(d.amount);select.append(o);}
   if(live.some(d=>d.id===previous))select.value=previous;
   $('paymentAmount').disabled=!live.length;$('paymentDebt').disabled=!live.length;
+  const historyFilter=$('historyDebt'),oldHistoryFilter=historyFilter.value;
+  historyFilter.replaceChildren();
+  const every=document.createElement('option');every.value='all';every.textContent='Все обязательства';historyFilter.append(every);
+  for(const d of debts){const o=document.createElement('option');o.value=d.id;o.textContent=d.name;historyFilter.append(o);}
+  historyFilter.value=debts.some(d=>d.id===oldHistoryFilter)?oldHistoryFilter:'all';
   const root=$('paymentHistory');root.replaceChildren();
-  const all=debts.flatMap(d=>(d.history||[]).map(p=>({...p,debtId:d.id,name:d.name})))
+  const all=debts.filter(d=>historyFilter.value==='all'||d.id===historyFilter.value)
+    .flatMap(d=>(d.history||[]).map(p=>({...p,debtId:d.id,name:d.name})))
     .sort((a,b)=>b.date.localeCompare(a.date));
   if(!all.length){$('showMorePayments').hidden=true;$('showAllPayments').hidden=true;root.append(el('p','Пока нет записанных выплат.','muted'));return;}
   $('showMorePayments').hidden=all.length<=visiblePayments;
@@ -141,7 +160,7 @@ $('paymentForm').addEventListener('submit',event=>{
   if((debt.history||[]).length>=5000){$('paymentError').textContent='Для этого долга достигнут лимит истории выплат.';return;}
   const idPayment=globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2);
   const next=debts.map(d=>d.id===id?{...d,amount:d.amount-cents,history:[...(d.history||[]),{id:idPayment,cents,date}]}:d);
-  if(!persist(next,'paymentError'))return;debts=next;$('paymentAmount').value='';render();
+  if(!persist(next,'paymentError'))return;debts=next;$('paymentAmount').value='';render();$('paymentMessage').textContent='Выплата '+rub(cents)+' записана. Остаток уменьшен.';
 });
 
 $('showMorePayments').addEventListener('click',()=>{visiblePayments+=50;renderPayments();});
@@ -199,5 +218,9 @@ function renderStrategies(){
 }
 $('extraPayment').addEventListener('input',renderStrategies);
 for(const btn of document.querySelectorAll('[data-extra]'))btn.addEventListener('click',()=>{$('extraPayment').value=btn.dataset.extra;renderStrategies();});
+
+for(const id of ['debtSearch','debtFilter','debtSort'])$(id).addEventListener(id==='debtSearch'?'input':'change',render);
+$('historyDebt').addEventListener('change',()=>{visiblePayments=50;renderPayments();});
+$('paymentForm').addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();$('paymentForm').requestSubmit();}});
 
 render();

@@ -195,6 +195,142 @@ function renderHistory(data) {
     root.append(item);
   }
 }
+
+function shiftMonth(month, delta) {
+  const [year, index] = month.split('-').map(Number);
+  const date = new Date(year, index - 1 + delta, 1);
+  return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+}
+function monthStats(month) {
+  let income = 0, expense = 0;
+  for (const entry of entries) if (entry.date.slice(0, 7) === month) {
+    if (entry.type === 'income') income += entry.cents;
+    else expense += entry.cents;
+  }
+  return {income, expense};
+}
+function renderInsights() {
+  const month = $('month').value;
+  if (!/^\d{4}-\d{2}$/.test(month)) return;
+  const current = monthStats(month);
+  const previous = monthStats(shiftMonth(month, -1));
+  const net = current.income - current.expense;
+  $('savingsRate').textContent = current.income ? (net / current.income * 100).toFixed(1).replace('.', ',') + '%' : '—';
+  $('savingsRate').className = net < 0 ? 'negative' : 'positive';
+  $('savingsNote').textContent = current.income ? 'Разница доходов и расходов относительно дохода' : 'Добавь доход, чтобы увидеть долю';
+  if (previous.expense) {
+    const change = (current.expense - previous.expense) / previous.expense * 100;
+    $('expenseChange').textContent = (change > 0 ? '+' : '') + change.toFixed(1).replace('.', ',') + '%';
+    $('expenseChange').className = change > 0 ? 'negative' : 'positive';
+    $('expenseChangeNote').textContent = 'Было ' + fmt(previous.expense / 100);
+  } else {
+    $('expenseChange').textContent = '—';
+    $('expenseChange').className = '';
+    $('expenseChangeNote').textContent = 'В прошлом месяце расходы не записаны';
+  }
+  const [year, monthNum] = month.split('-').map(Number);
+  const days = new Date(year, monthNum, 0).getDate();
+  $('dailyExpense').textContent = fmt(current.expense / days / 100);
+  const periods = Array.from({length: 6}, (_, i) => shiftMonth(month, i - 5));
+  const stats = periods.map(monthStats);
+  const max = Math.max(1, ...stats.flatMap(x => [x.income, x.expense]));
+  const root = $('trend');
+  root.replaceChildren();
+  for (let i = 0; i < periods.length; i++) {
+    const wrap = element('div', '', 'trend-item');
+    const bars = element('div', '', 'trend-bars');
+    for (const type of ['income', 'expense']) {
+      const bar = element('div', '', 'trend-bar ' + type);
+      const value = stats[i][type];
+      bar.style.height = Math.max(value ? 3 : 0, value / max * 100) + '%';
+      bar.title = (type === 'income' ? 'Доходы: ' : 'Расходы: ') + fmt(value / 100);
+      bars.append(bar);
+    }
+    wrap.append(bars, element('small', new Date(periods[i] + '-01T12:00:00').toLocaleDateString('ru-RU', {month: 'short', year: '2-digit'})));
+    root.append(wrap);
+  }
+}
+function downloadJSON(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function validDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(value + 'T12:00:00');
+  return !Number.isNaN(date.getTime()) &&
+    date.getFullYear() === Number(value.slice(0, 4)) &&
+    date.getMonth() + 1 === Number(value.slice(5, 7)) &&
+    date.getDate() === Number(value.slice(8, 10));
+}
+function validBackup(data) {
+  if (!data || data.app !== 'gpro-my-budget' || data.version !== 1 ||
+      !Array.isArray(data.entries) || data.entries.length > 20000 ||
+      !data.limits || typeof data.limits !== 'object' || Array.isArray(data.limits)) return false;
+  const ids = new Set();
+  for (const e of data.entries) {
+    if (!e || typeof e.id !== 'string' || !e.id || e.id.length > 120 || ids.has(e.id) ||
+        !['income', 'expense'].includes(e.type) || !validDate(e.date) ||
+        !CATEGORIES[e.type].includes(e.category) || !Number.isSafeInteger(e.cents) ||
+        e.cents <= 0 || e.cents > 1e14 || (e.note != null && (typeof e.note !== 'string' || e.note.length > 120))) return false;
+    ids.add(e.id);
+  }
+  if (Object.keys(data.limits).length > 1200) return false;
+  for (const [month, cats] of Object.entries(data.limits)) {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month) || !cats ||
+        typeof cats !== 'object' || Array.isArray(cats)) return false;
+    for (const [name, cents] of Object.entries(cats)) {
+      if (!CATEGORIES.expense.includes(name) || !Number.isSafeInteger(cents) || cents < 0 || cents > 1e14) return false;
+    }
+  }
+  return true;
+}
+$('prevMonth').addEventListener('click', () => { $('month').value = shiftMonth($('month').value, -1); resetEditor(); render(); });
+$('nextMonth').addEventListener('click', () => { $('month').value = shiftMonth($('month').value, 1); resetEditor(); render(); });
+$('backupExport').addEventListener('click', () => {
+  downloadJSON({app: 'gpro-my-budget', version: 1, exportedAt: new Date().toISOString(), entries, limits},
+    'gpro-budget-backup-' + today() + '.json');
+  $('backupMessage').textContent = 'Резервная копия подготовлена для скачивания.';
+});
+$('backupImport').addEventListener('change', async event => {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+  const msg = $('backupMessage');
+  msg.textContent = '';
+  if (file.size > 5 * 1024 * 1024) { msg.textContent = 'Файл слишком большой (максимум 5 МБ).'; return; }
+  try {
+    const data = JSON.parse(await file.text());
+    if (!validBackup(data)) { msg.textContent = 'Неверный формат или содержимое резервной копии.'; return; }
+    if (!confirm('Заменить все текущие операции и лимиты данными из резервной копии? Это действие нельзя отменить.')) return;
+    const oldEntries = localStorage.getItem(KEY);
+    const oldLimits = localStorage.getItem(LIMIT_KEY);
+    try {
+      localStorage.setItem(KEY, JSON.stringify(data.entries));
+      localStorage.setItem(LIMIT_KEY, JSON.stringify(data.limits));
+    } catch (error) {
+      try {
+        if (oldEntries === null) localStorage.removeItem(KEY); else localStorage.setItem(KEY, oldEntries);
+        if (oldLimits === null) localStorage.removeItem(LIMIT_KEY); else localStorage.setItem(LIMIT_KEY, oldLimits);
+      } catch {}
+      throw error;
+    }
+    entries = data.entries;
+    limits = data.limits;
+    resetEditor();
+    render();
+    msg.textContent = 'Данные восстановлены: ' + entries.length + ' операций.';
+  } catch {
+    msg.textContent = 'Не удалось прочитать или сохранить файл. Данные не импортированы.';
+  }
+});
+
 function render() {
   const data = monthly();
   const incomeCents = data.filter(e => e.type === 'income').reduce((sum, e) => sum + e.cents, 0);
@@ -207,6 +343,7 @@ function render() {
   renderBreakdown(totals, expenseCents);
   renderLimits(totals);
   renderHistory(data);
+  renderInsights();
 }
 $('month').value = today().slice(0, 7);
 $('date').value = today();
@@ -236,8 +373,8 @@ $('operationForm').addEventListener('submit', event => {
   const cents = centsFrom($('amount').value);
   const date = $('date').value, type = $('type').value, category = $('category').value;
   const note = $('note').value.trim();
-  const validDate = /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(new Date(date + 'T12:00:00').getTime());
-  if (cents === null || !validDate || !CATEGORIES[type]?.includes(category)) {
+  const isValidDate = validDate(date);
+  if (cents === null || !isValidDate || !CATEGORIES[type]?.includes(category)) {
     $('formError').textContent = 'Проверь сумму, дату и категорию.';
     return;
   }

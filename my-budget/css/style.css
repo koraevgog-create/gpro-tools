@@ -35,3 +35,29 @@
 .limit-summary.over{border-color:#a35c66}
 .limit-summary.over .limit-summary-meter>div{background:#ef8e99}
 @media(max-width:520px){.limit-summary-grid{grid-template-columns:1fr 1fr;gap:16px}.limit-summary-grid>div:first-child{grid-column:1/-1}}
+
+/* v0.3.0: six-month overview and local backup */
+.insights{margin:18px 0}
+.insights h3{font-size:16px;margin:26px 0 12px}
+.insight-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:18px}
+.insight-grid>div{padding:17px;border:1px solid #2c405a;background:#101e31;border-radius:12px;display:flex;flex-direction:column;gap:8px}
+.insight-grid span{font-size:13px;color:#b5c5dc}
+.insight-grid strong{font-size:clamp(20px,2.5vw,29px);overflow-wrap:anywhere}
+.insight-grid small{line-height:1.5}
+.trend{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;min-height:165px}
+.trend-item{min-width:0;display:flex;flex-direction:column;gap:10px;text-align:center}
+.trend-item small{color:#b3c5dc;font-size:11px}
+.trend-bars{height:126px;display:flex;justify-content:center;align-items:end;gap:6px;padding:5px;background:#101e31;border-radius:9px}
+.trend-bar{width:26px;max-width:40%;border-radius:5px 5px 0 0;min-height:0;transition:height .2s}
+.trend-bar.income{background:#55bda6}
+.trend-bar.expense{background:#7c9ef0}
+.trend:after{content:'Зелёный — доходы · Синий — расходы';grid-column:1/-1;color:#a9bcd4;font-size:12px;text-align:center}
+.backup{margin-top:18px}
+.backup>p.hint{line-height:1.65}
+.backup-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:18px 0}
+.backup-import{position:relative;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:11px 15px;background:#1d2b42;border:1px solid #34445d;border-radius:10px;color:#dde9fb;font-weight:650}
+.backup-import:focus-within{outline:2px solid #79b5ff;outline-offset:3px}
+.backup-import input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+#backupMessage{min-height:18px}
+@media(max-width:760px){.insight-grid{grid-template-columns:1fr 1fr}.insight-grid>div:last-child{grid-column:1/-1}}
+@media(max-width:520px){.insight-grid{grid-template-columns:1fr}.insight-grid>div:last-child{grid-column:auto}.trend{gap:4px}.trend-bars{gap:3px}.trend-bar{width:16px}.trend-item small{font-size:10px}.backup-actions>*{width:100%;text-align:center}}

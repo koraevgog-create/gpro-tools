@@ -81,6 +81,8 @@ $('debtForm').addEventListener('submit',event=>{
   const original=editingId?debts.find(d=>d.id===editingId):null;
   if(editingId&&!original){$('formError').textContent='Долг для изменения не найден.';return;}
   const delta=original?amount-original.amount:0;
+  if(original && starting(original)+delta<0){$('formError').textContent='Остаток нельзя уменьшить ниже общей суммы записанных выплат. Исправь выплаты через историю.';return;}
+  if(original && (original.adjustments||[]).length>=5000 && delta!==0){$('formError').textContent='Достигнут лимит ручных корректировок.';return;}
   if(original&&delta!==0&&!confirm('Изменить остаток на '+rub(Math.abs(delta))+' ('+(delta>0?'увеличение':'уменьшение')+')? Это ручная корректировка, она НЕ будет записана как выплата.'))return;
   const debt={id:original?.id||uid(),name,amount,payment,target,...(rate===undefined?{}:{rate}),...(due?{due}:{}),history:original?.history||[],initialAmount:original?starting(original)+delta:amount,adjustments:original?[...(original.adjustments||[]),...(delta?[{date:localToday(),delta}]:[])]:[]};
   const next=editingId?debts.map(d=>d.id===editingId?debt:d):[...debts,debt];if(!persist(next))return;debts=next;resetEditor();render();$('debtName').focus();
@@ -122,6 +124,7 @@ function renderPayments(){
     undo.addEventListener('click',()=>{
       if(!confirm('Отменить выплату '+rub(p.cents)+' по долгу «'+p.name+'»? Остаток долга увеличится.'))return;
       const next=debts.map(d=>d.id===p.debtId?{...d,amount:d.amount+p.cents,history:(d.history||[]).filter(x=>x.id!==p.id)}:d);
+    if(next.some(d=>d.amount>1e14)){$('paymentError').textContent='Невозможно отменить выплату: сумма превысит допустимый предел.';return;}
       if(!persist(next,'paymentError'))return;debts=next;render();
     });
     item.append(info,undo);root.append(item);

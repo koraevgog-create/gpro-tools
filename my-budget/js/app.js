@@ -3,6 +3,8 @@
 const $ = id => document.getElementById(id);
 const KEY = 'gpro-my-budget-v1'; // Retain the v1 key to preserve existing transactions.
 const LIMIT_KEY = 'gpro-my-budget-limits-v1';
+const PLAN_KEY = 'gpro-my-budget-plans-v1';
+const RECUR_KEY = 'gpro-my-budget-recurring-v1';
 const CATEGORIES = {
   expense: ['Продукты', 'Жильё', 'Транспорт', 'Здоровье', 'Семья', 'Развлечения', 'Покупки', 'Другое'],
   income: ['Зарплата', 'Подработка', 'Доп доход 1', 'Доп доход 2', 'Подарки', 'Другое']
@@ -30,6 +32,10 @@ let entries = Array.isArray(saved) ? saved.filter(x =>
   typeof x.date === 'string' && typeof x.category === 'string' &&
   Number.isSafeInteger(x.cents) && x.cents > 0
 ) : [];
+const savedPlans = readStorage(PLAN_KEY, []);
+let plans = Array.isArray(savedPlans) ? savedPlans : [];
+const savedRecurring = readStorage(RECUR_KEY, []);
+let recurring = Array.isArray(savedRecurring) ? savedRecurring : [];
 const savedLimits = readStorage(LIMIT_KEY, {});
 let limits = savedLimits && typeof savedLimits === 'object' && !Array.isArray(savedLimits) ? savedLimits : {};
 const centsFrom = (value, allowZero = false) => {
@@ -273,7 +279,7 @@ function validDate(value) {
     date.getDate() === Number(value.slice(8, 10));
 }
 function validBackup(data) {
-  if (!data || data.app !== 'gpro-my-budget' || data.version !== 1 ||
+  if (!data || data.app !== 'gpro-my-budget' || ![1,2].includes(data.version) ||
       !Array.isArray(data.entries) || data.entries.length > 20000 ||
       !data.limits || typeof data.limits !== 'object' || Array.isArray(data.limits)) return false;
   const ids = new Set();
@@ -292,12 +298,18 @@ function validBackup(data) {
       if (!CATEGORIES.expense.includes(name) || !Number.isSafeInteger(cents) || cents < 0 || cents > 1e14) return false;
     }
   }
+  if (data.version === 2) {
+    if (!Array.isArray(data.plans) || data.plans.length > 20000 || !data.plans.every(p=>validExtra(p,'plan')) ||
+        !Array.isArray(data.recurring) || data.recurring.length > 2000 || !data.recurring.every(t=>validExtra(t,'recurring'))) return false;
+    if (new Set(data.plans.map(p=>p.id)).size !== data.plans.length ||
+        new Set(data.recurring.map(t=>t.id)).size !== data.recurring.length) return false;
+  }
   return true;
 }
 $('prevMonth').addEventListener('click', () => { $('month').value = shiftMonth($('month').value, -1); resetEditor(); render(); });
 $('nextMonth').addEventListener('click', () => { $('month').value = shiftMonth($('month').value, 1); resetEditor(); render(); });
 $('backupExport').addEventListener('click', () => {
-  downloadJSON({app: 'gpro-my-budget', version: 1, exportedAt: new Date().toISOString(), entries, limits},
+  downloadJSON({app: 'gpro-my-budget', version: 2, exportedAt: new Date().toISOString(), entries, limits, plans, recurring},
     'gpro-budget-backup-' + today() + '.json');
   $('backupMessage').textContent = 'Резервная копия подготовлена для скачивания.';
 });
@@ -311,27 +323,137 @@ $('backupImport').addEventListener('change', async event => {
   try {
     const data = JSON.parse(await file.text());
     if (!validBackup(data)) { msg.textContent = 'Неверный формат или содержимое резервной копии.'; return; }
-    if (!confirm('Заменить все текущие операции и лимиты данными из резервной копии? Это действие нельзя отменить.')) return;
-    const oldEntries = localStorage.getItem(KEY);
-    const oldLimits = localStorage.getItem(LIMIT_KEY);
-    try {
-      localStorage.setItem(KEY, JSON.stringify(data.entries));
-      localStorage.setItem(LIMIT_KEY, JSON.stringify(data.limits));
-    } catch (error) {
-      try {
-        if (oldEntries === null) localStorage.removeItem(KEY); else localStorage.setItem(KEY, oldEntries);
-        if (oldLimits === null) localStorage.removeItem(LIMIT_KEY); else localStorage.setItem(LIMIT_KEY, oldLimits);
-      } catch {}
-      throw error;
-    }
+    if (!confirm('Заменить все текущие операции, лимиты, планы и шаблоны данными из резервной копии? Это действие нельзя отменить.')) return;
+    const restoredPlans = data.version === 2 ? data.plans : [];
+    const restoredRecurring = data.version === 2 ? data.recurring : [];
+    if (!savePair([[KEY,data.entries],[LIMIT_KEY,data.limits],[PLAN_KEY,restoredPlans],[RECUR_KEY,restoredRecurring]],'backupMessage')) return;
     entries = data.entries;
     limits = data.limits;
+    plans = restoredPlans;
+    recurring = restoredRecurring;
     resetEditor();
     render();
     msg.textContent = 'Данные восстановлены: ' + entries.length + ' операций.';
   } catch {
     msg.textContent = 'Не удалось прочитать или сохранить файл. Данные не импортированы.';
   }
+});
+
+
+function populateCategory(selectId, typeId) {
+  const select = $(selectId), previous = select.value;
+  const names = CATEGORIES[$(typeId).value];
+  select.replaceChildren(...names.map(name => option(name)));
+  if (names.includes(previous)) select.value = previous;
+}
+function validExtra(item, kind) {
+  return item && typeof item.id === 'string' && item.id.length > 0 && item.id.length <= 120 &&
+    ['income','expense'].includes(item.type) && validCategory(item.type, item.category) &&
+    Number.isSafeInteger(item.cents) && item.cents > 0 && item.cents <= 1e14 &&
+    typeof item.note === 'string' && item.note.length <= 120 &&
+    (kind === 'plan' ? /^\d{4}-(0[1-9]|1[0-2])$/.test(item.month) :
+      Number.isInteger(item.day) && item.day >= 1 && item.day <= 31);
+}
+function renderPlans() {
+  const month = $('month').value, items = plans.filter(p => p.month === month);
+  const actual = monthStats(month);
+  const projected = {income: actual.income, expense: actual.expense};
+  for (const p of items) projected[p.type] += p.cents;
+  $('forecastIncome').textContent = fmt(projected.income / 100);
+  $('forecastExpense').textContent = fmt(projected.expense / 100);
+  $('forecastBalance').textContent = fmt((projected.income - projected.expense) / 100);
+  $('forecastBalance').className = projected.income < projected.expense ? 'negative' : 'positive';
+  const root = $('planList'); root.replaceChildren();
+  if (!items.length) { root.append(element('p','Нет запланированных операций на этот месяц.','hint')); return; }
+  for (const p of items) {
+    const row = element('div','','simple-item');
+    const detail = element('div', (p.type === 'income' ? 'Доход · ' : 'Расход · ') + p.category + ' · ' + fmt(p.cents / 100));
+    if (p.note) detail.append(element('small',p.note,'hint'));
+    const actions = element('div','','simple-actions');
+    const done = element('button','Внести в факт','button secondary');
+    done.type='button';
+    done.addEventListener('click',()=>{
+      const monthNow = $('month').value;
+      const date = monthNow + '-' + String(Math.min(Number(today().slice(8,10)),new Date(Number(monthNow.slice(0,4)),Number(monthNow.slice(5,7)),0).getDate())).padStart(2,'0');
+      const nextEntries = [...entries,{id:uid(),type:p.type,cents:p.cents,date,category:p.category,note:p.note}];
+      const nextPlans = plans.filter(x=>x.id!==p.id);
+      if (!savePair([[KEY,nextEntries],[PLAN_KEY,nextPlans]],'planError')) return;
+      entries=nextEntries; plans=nextPlans; render();
+    });
+    const remove=element('button','Удалить','button danger');
+    remove.type='button';remove.addEventListener('click',()=>{
+      const next=plans.filter(x=>x.id!==p.id);
+      if(!save(PLAN_KEY,next,'planError'))return;
+      plans=next;render();
+    });
+    actions.append(done,remove);row.append(detail,actions);root.append(row);
+  }
+}
+function renderRecurring() {
+  const root=$('recurringList');root.replaceChildren();
+  if(!recurring.length)root.append(element('p','Регулярных шаблонов пока нет.','hint'));
+  for(const template of recurring){
+    const row=element('div','','simple-item');
+    const detail=element('div',(template.type==='income'?'Доход · ':'Расход · ')+template.category+' · '+fmt(template.cents/100)+' · '+template.day+'-е число');
+    if(template.note)detail.append(element('small',template.note,'hint'));
+    const remove=element('button','Удалить шаблон','button danger');
+    remove.type='button';remove.addEventListener('click',()=>{
+      const next=recurring.filter(x=>x.id!==template.id);
+      if(!save(RECUR_KEY,next,'recurringError'))return;
+      recurring=next;renderRecurring();
+    });
+    row.append(detail,remove);root.append(row);
+  }
+}
+function savePair(pairs,errorId){
+  const previous=pairs.map(([key])=>[key,localStorage.getItem(key)]);
+  try {for(const [key,value] of pairs)localStorage.setItem(key,JSON.stringify(value));return true;}
+  catch {
+    try{for(const [key,value] of previous){if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value);}}catch{}
+    $(errorId).textContent='Не удалось сохранить изменения. Проверь настройки браузера.';
+    return false;
+  }
+}
+$('planType').addEventListener('change',()=>populateCategory('planCategory','planType'));
+$('recurringType').addEventListener('change',()=>populateCategory('recurringCategory','recurringType'));
+populateCategory('planCategory','planType');
+populateCategory('recurringCategory','recurringType');
+$('planForm').addEventListener('submit',event=>{
+  event.preventDefault();$('planError').textContent='';
+  const item={id:uid(),month:$('month').value,type:$('planType').value,category:$('planCategory').value,cents:centsFrom($('planAmount').value),note:$('planNote').value.trim()};
+  if(!validExtra(item,'plan')){$('planError').textContent='Проверь поля плана.';return;}
+  const next=[...plans,item];if(!save(PLAN_KEY,next,'planError'))return;
+  plans=next;$('planAmount').value='';$('planNote').value='';render();
+});
+$('recurringForm').addEventListener('submit',event=>{
+  event.preventDefault();$('recurringError').textContent='';
+  const item={id:uid(),type:$('recurringType').value,category:$('recurringCategory').value,cents:centsFrom($('recurringAmount').value),day:Number($('recurringDay').value),note:$('recurringNote').value.trim()};
+  if(!validExtra(item,'recurring')){$('recurringError').textContent='Проверь поля шаблона.';return;}
+  const next=[...recurring,item];if(!save(RECUR_KEY,next,'recurringError'))return;
+  recurring=next;$('recurringAmount').value='';$('recurringNote').value='';renderRecurring();
+});
+$('applyRecurring').addEventListener('click',()=>{
+  const month=$('month').value,year=Number(month.slice(0,4)),m=Number(month.slice(5,7));
+  const last=new Date(year,m,0).getDate();
+  const next=[...entries];let count=0;
+  for(const t of recurring){
+    if(next.some(e=>e.recurringId===t.id && e.date.slice(0,7)===month))continue;
+    next.push({id:uid(),type:t.type,category:t.category,cents:t.cents,
+      date:month+'-'+String(Math.min(t.day,last)).padStart(2,'0'),note:t.note,recurringId:t.id});
+    count++;
+  }
+  if(!count){$('recurringMessage').textContent='Новых операций нет: шаблоны уже внесены или список пуст.';return;}
+  if(!save(KEY,next,'recurringError'))return;
+  entries=next;render();
+  $('recurringMessage').textContent='Добавлено операций: '+count+'. Повторное нажатие не создаст дубли.';
+});
+$('copyLimits').addEventListener('click',()=>{
+  const month=$('month').value,source=limits[shiftMonth(month,-1)]||{};
+  if(!Object.keys(source).length){$('limitError').textContent='В прошлом месяце лимиты не установлены.';return;}
+  if(Object.keys(limits[month]||{}).length && !confirm('Заменить лимиты текущего месяца лимитами прошлого?'))return;
+  const next={...limits,[month]:{...source}};
+  if(!save(LIMIT_KEY,next,'limitError'))return;
+  limits=next;$('limitError').textContent='Лимиты скопированы.';renderLimits(categoryTotals(monthly()));
 });
 
 function render() {
@@ -347,6 +469,8 @@ function render() {
   renderLimits(totals);
   renderHistory(data);
   renderInsights();
+  renderPlans();
+  renderRecurring();
 }
 $('month').value = today().slice(0, 7);
 $('date').value = today();

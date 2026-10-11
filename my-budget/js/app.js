@@ -58,10 +58,18 @@ const element = (tag, text, className = '') => {
   if (className) el.className = className;
   return el;
 };
+function syncQuickTypes() {
+  for (const [id,type] of [['quickExpense','expense'],['quickIncome','income']]) {
+    const active = $('type').value === type;
+    $(id).classList.toggle('active',active);
+    $(id).setAttribute('aria-pressed',String(active));
+  }
+}
 function updateCategories() {
   const previous = $('category').value;
   $('category').replaceChildren(...CATEGORIES[$('type').value].map(x => option(x)));
   if (CATEGORIES[$('type').value].includes(previous)) $('category').value = previous;
+  syncQuickTypes();
 }
 function updateFilterCategories() {
   const previous = $('filterCategory').value;
@@ -96,6 +104,8 @@ function editEntry(id) {
   $('saveOperation').textContent = 'Сохранить изменения';
   $('cancelEdit').hidden = false;
   $('formError').textContent = '';
+  $('historyFold').open = true;
+  $('operationMessage').textContent = '';
   $('operationForm').scrollIntoView({behavior: 'smooth', block: 'start'});
   $('amount').focus({preventScroll: true});
 }
@@ -479,6 +489,20 @@ $('limitCategory').replaceChildren(...CATEGORIES.expense.map(x => option(x)));
 updateCategories();
 updateFilterCategories();
 $('type').addEventListener('change', updateCategories);
+for (const [id,type] of [['quickExpense','expense'],['quickIncome','income']]) {
+  $(id).addEventListener('click',()=>{
+    $('type').value=type;updateCategories();$('amount').focus();
+  });
+}
+$('todayDate').addEventListener('click',()=>{$('date').value=today();});
+$('currentMonth').addEventListener('click',()=>{
+  $('month').value=today().slice(0,7);resetEditor();render();
+});
+$('operationForm').addEventListener('keydown',event=>{
+  if ((event.ctrlKey || event.metaKey) && event.key==='Enter') {
+    event.preventDefault();$('saveOperation').click();
+  }
+});
 $('month').addEventListener('change', () => {
   resetEditor();
   $('limitAmount').value = '';
@@ -507,6 +531,7 @@ $('operationForm').addEventListener('submit', event => {
     return;
   }
   const id = $('editingId').value;
+  const wasEditing = Boolean(id);
   const original = id ? entries.find(x => x.id === id) : null;
   const updated = {id: id || uid(), type, cents, date, category, note, ...(original?.recurringId ? {recurringId: original.recurringId} : {})};
   if (id && !entries.some(x => x.id === id)) {
@@ -519,6 +544,8 @@ $('operationForm').addEventListener('submit', event => {
   resetEditor();
   $('month').value = date.slice(0, 7);
   render();
+  $('operationMessage').textContent = wasEditing ? 'Изменения сохранены.' : 'Операция добавлена. Можно сразу внести следующую.';
+  $('amount').focus({preventScroll:true});
 });
 $('limitForm').addEventListener('submit', event => {
   event.preventDefault();

@@ -85,7 +85,6 @@ $('debtForm').addEventListener('submit',event=>{
   const debt={id:original?.id||uid(),name,amount,payment,target,...(rate===undefined?{}:{rate}),...(due?{due}:{}),history:original?.history||[],initialAmount:original?starting(original)+delta:amount,adjustments:original?[...(original.adjustments||[]),...(delta?[{date:localToday(),delta}]:[])]:[]};
   const next=editingId?debts.map(d=>d.id===editingId?debt:d):[...debts,debt];if(!persist(next))return;debts=next;resetEditor();render();$('debtName').focus();
 });
-render();
 function startEdit(id){
   const d=debts.find(x=>x.id===id);if(!d)return;
   $('editingId').value=id;$('debtName').value=d.name;$('debtAmount').value=(d.amount/100).toFixed(2);
@@ -171,7 +170,6 @@ function simulate(strategy,extra){
       d.remaining-=scheduled;
     }
     // Any surplus from fulfilled recurring allocations rolls into the avalanche/snowball pool.
-    const newlyPaid=active.filter(d=>d.remaining<=0).reduce((sum,d)=>sum+d.voluntary,0);
     // Reuse closed debts' baseline payment starting next month, without double counting this month's payment.
     if(month>1)budget+=active.filter(d=>d.closedAt&&d.closedAt<month).reduce((sum,d)=>sum+d.voluntary,0);
     // For debts paid off this month, unused scheduled amount is available immediately.
@@ -197,3 +195,5 @@ function renderStrategies(){
   }
 }
 $('extraPayment').addEventListener('input',renderStrategies);
+
+render();

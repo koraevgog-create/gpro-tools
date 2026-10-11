@@ -332,6 +332,7 @@ $('backupImport').addEventListener('change', async event => {
     plans = restoredPlans;
     recurring = restoredRecurring;
     resetEditor();
+    updateFilterCategories();
     render();
     msg.textContent = 'Данные восстановлены: ' + entries.length + ' операций.';
   } catch {
@@ -506,7 +507,8 @@ $('operationForm').addEventListener('submit', event => {
     return;
   }
   const id = $('editingId').value;
-  const updated = {id: id || uid(), type, cents, date, category, note};
+  const original = id ? entries.find(x => x.id === id) : null;
+  const updated = {id: id || uid(), type, cents, date, category, note, ...(original?.recurringId ? {recurringId: original.recurringId} : {})};
   if (id && !entries.some(x => x.id === id)) {
     $('formError').textContent = 'Операция не найдена. Обнови страницу.';
     return;

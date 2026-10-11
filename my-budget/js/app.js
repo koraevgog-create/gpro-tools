@@ -62,6 +62,12 @@ const centsFrom = (value, allowZero = false) => {
   return Number.isSafeInteger(cents) && (allowZero || cents > 0) ? cents : null;
 };
 function save(key, data, errorId) {
+  const check=checkStoredData();
+  if(!check.ok){
+    $(errorId).textContent='Сохранение остановлено: обнаружена проблема с данными. Проверь предупреждение и сохрани аварийную копию.';
+    showStorageAlert(check.message);
+    return false;
+  }
   try { localStorage.setItem(key, JSON.stringify(data)); return true; }
   catch {
     $(errorId).textContent = 'Не удалось сохранить изменения. Проверь свободное место и настройки браузера.';
@@ -346,6 +352,21 @@ function validBackup(data) {
 }
 $('prevMonth').addEventListener('click', () => { $('month').value = shiftMonth($('month').value, -1); rememberMonth(); resetEditor(); render(); });
 $('nextMonth').addEventListener('click', () => { $('month').value = shiftMonth($('month').value, 1); rememberMonth(); resetEditor(); render(); });
+function showStorageAlert(message){
+  $('storageAlert').hidden=false;
+  $('storageAlertText').textContent=message;
+}
+function emergencySnapshot(){
+  const raw={};
+  for(const key of [KEY,LIMIT_KEY,PLAN_KEY,RECUR_KEY,PREF_KEY]){
+    try {raw[key]=localStorage.getItem(key);}
+    catch {raw[key]='[Невозможно прочитать ключ]';}
+  }
+  return {app:'gpro-my-budget-emergency',version:1,exportedAt:new Date().toISOString(),raw,warning:'Аварийная копия содержит исходные строки хранилища. Восстанавливается только вручную; не загружай её через обычный импорт.'};
+}
+$('rawBackupExport').addEventListener('click',()=>{
+  downloadJSON(emergencySnapshot(),'gpro-budget-emergency-'+today()+'.json');
+});
 function currentBackup(){
   return {app:'gpro-my-budget',version:3,exportedAt:new Date().toISOString(),entries,limits,plans,recurring,preferences:prefs};
 }
@@ -572,13 +593,13 @@ function applyPrefs() {
   }
 }
 function persistPrefs() {
-  try {localStorage.setItem(PREF_KEY,JSON.stringify(prefs));$('settingsMessage').textContent='Настройки сохранены.';}
+  try {if(!checkStoredData().ok){$('settingsMessage').textContent='Сохранение настроек остановлено: проверь сохранность данных.';return;}localStorage.setItem(PREF_KEY,JSON.stringify(prefs));$('settingsMessage').textContent='Настройки сохранены.';}
   catch {$('settingsMessage').textContent='Не удалось сохранить настройки в этом браузере.';}
 }
 function rememberMonth() {
   if (prefs.startMonth !== 'last' || !/^\d{4}-(0[1-9]|1[0-2])$/.test($('month').value)) return;
   prefs.lastMonth=$('month').value;
-  try {localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch{}
+  try {if(checkStoredData().ok)localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch{}
 }
 for (const [id,key] of [['prefDensity','density'],['prefDefaultType','defaultType'],['prefStartMonth','startMonth']]) {
   $(id).addEventListener('change',()=>{
@@ -725,3 +746,5 @@ if (/^https:\/\/t\.me\/[A-Za-z0-9_]{5,32}(?:\?start=[A-Za-z0-9_-]{1,64})?$/.test
   $('tgAction').replaceChildren(a);
 }
 render();
+const startupCheck=checkStoredData();
+if(!startupCheck.ok)showStorageAlert(startupCheck.message);

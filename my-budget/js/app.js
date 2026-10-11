@@ -47,7 +47,9 @@ const saved = readStorage(KEY, []);
 let entries = Array.isArray(saved) ? saved.filter(x =>
   x && typeof x.id === 'string' && ['income', 'expense'].includes(x.type) &&
   typeof x.date === 'string' && typeof x.category === 'string' &&
-  Number.isSafeInteger(x.cents) && x.cents > 0
+  Number.isSafeInteger(x.cents) && x.cents > 0 && x.cents <= 1e14 &&
+  /^\d{4}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/.test(x.date) &&
+  validCategory(x.type,x.category) && (x.note == null || typeof x.note === 'string')
 ) : [];
 const savedPlans = readStorage(PLAN_KEY, []);
 let plans = Array.isArray(savedPlans) ? savedPlans : [];
@@ -55,6 +57,12 @@ const savedRecurring = readStorage(RECUR_KEY, []);
 let recurring = Array.isArray(savedRecurring) ? savedRecurring : [];
 const savedLimits = readStorage(LIMIT_KEY, {});
 let limits = savedLimits && typeof savedLimits === 'object' && !Array.isArray(savedLimits) ? savedLimits : {};
+// Preserve the untouched raw storage for emergency export; render only safe limit values.
+limits = Object.fromEntries(Object.entries(limits).filter(([month,cats]) =>
+  /^\d{4}-(0[1-9]|1[0-2])$/.test(month) && cats && typeof cats === 'object' && !Array.isArray(cats)
+).map(([month,cats])=>[month,Object.fromEntries(Object.entries(cats).filter(([name,cents])=>
+  CATEGORIES.expense.includes(name) && Number.isSafeInteger(cents) && cents >= 0 && cents <= 1e14
+))]));
 const centsFrom = (value, allowZero = false) => {
   const n = Number(value);
   if (value === '' || !Number.isFinite(n) || n > 1e12 || (allowZero ? n < 0 : n <= 0)) return null;
@@ -396,7 +404,7 @@ function checkStoredData(){
     };
     if(!validBackup(snapshot))return {ok:false,message:'Найдены некорректные данные в хранилище. Скачай резервную копию перед изменениями.'};
     if(!validBackup(currentBackup()))return {ok:false,message:'Часть загруженных данных не прошла проверку. Скачай резервную копию.'};
-    return {ok:true,message:'Проверка пройдена: '+entries.length+' операций, '+plans.length+' планов, '+recurring.length+' регулярных шаблонов. Хранилище доступно. Для защиты от потери устройства скачай резервную копию.'};
+    return {ok:true,message:'Проверка пройдена: '+entries.length+' операций. Хранилище доступно. Чтобы не потерять данные при смене устройства или очистке браузера, скачай резервную копию.'};
   }catch{
     return {ok:false,message:'Не удалось прочитать все данные из хранилища браузера. Скачай резервную копию и проверь настройки браузера.'};
   }
@@ -680,6 +688,6 @@ if (/^https:\/\/t\.me\/[A-Za-z0-9_]{5,32}(?:\?start=[A-Za-z0-9_-]{1,64})?$/.test
   a.rel = 'noopener noreferrer';
   $('tgAction').replaceChildren(a);
 }
-render();
 const startupCheck=checkStoredData();
 if(!startupCheck.ok)showStorageAlert(startupCheck.message);
+render();

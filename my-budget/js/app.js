@@ -27,20 +27,22 @@ function readStorage(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; }
   catch { return fallback; }
 }
-const PREF_DEFAULTS = Object.freeze({density:'comfortable',defaultType:'expense',startMonth:'current',rememberSections:false,lastMonth:'' ,sections:{}});
+const PREF_DEFAULTS = Object.freeze({density:'comfortable',defaultType:'expense',startMonth:'current',rememberSections:false,showInsights:true,showBreakdown:true,lastMonth:'' ,sections:{}});
 function validPrefs(p) {
   return p && typeof p === 'object' && !Array.isArray(p) &&
     ['comfortable','compact'].includes(p.density) &&
     ['expense','income'].includes(p.defaultType) &&
     ['current','last'].includes(p.startMonth) &&
     typeof p.rememberSections === 'boolean' &&
-    (p.lastMonth === '' || /^\\d{4}-(0[1-9]|1[0-2])$/.test(p.lastMonth)) &&
+    (p.showInsights === undefined || typeof p.showInsights === 'boolean') &&
+    (p.showBreakdown === undefined || typeof p.showBreakdown === 'boolean') &&
+    (p.lastMonth === '' || /^\d{4}-(0[1-9]|1[0-2])$/.test(p.lastMonth)) &&
     p.sections && typeof p.sections === 'object' && !Array.isArray(p.sections) &&
     Object.keys(p.sections).length <= 10 &&
     Object.values(p.sections).every(x=>typeof x==='boolean');
 }
 const storedPrefs = readStorage(PREF_KEY, null);
-let prefs = validPrefs(storedPrefs) ? storedPrefs : {...PREF_DEFAULTS};
+let prefs = validPrefs(storedPrefs) ? {...PREF_DEFAULTS,...storedPrefs} : {...PREF_DEFAULTS};
 const saved = readStorage(KEY, []);
 let entries = Array.isArray(saved) ? saved.filter(x =>
   x && typeof x.id === 'string' && ['income', 'expense'].includes(x.type) &&
@@ -368,8 +370,9 @@ $('backupImport').addEventListener('change', async event => {
     limits = data.limits;
     plans = restoredPlans;
     recurring = restoredRecurring;
-    prefs = restoredPrefs;
+    prefs = {...PREF_DEFAULTS,...restoredPrefs};
     applyPrefs();
+    if(prefs.rememberSections)for(const fold of document.querySelectorAll('details.fold'))if(fold.id && fold.id!=='settingsFold')fold.open=Boolean(prefs.sections[fold.id]);
     resetEditor();
     updateFilterCategories();
     render();
@@ -518,9 +521,12 @@ function applyPrefs() {
   $('prefDefaultType').value=prefs.defaultType;
   $('prefStartMonth').value=prefs.startMonth;
   $('prefRememberSections').checked=prefs.rememberSections;
+  $('prefShowInsights').checked=prefs.showInsights;
+  $('prefShowBreakdown').checked=prefs.showBreakdown;
+  $('insightsPanel').hidden=!prefs.showInsights;
+  $('breakdownPanel').hidden=!prefs.showBreakdown;
   for (const fold of document.querySelectorAll('details.fold')) {
-    if (fold.id && fold.id !== 'settingsFold')
-      fold.open = prefs.rememberSections ? Boolean(prefs.sections[fold.id]) : false;
+    if (fold.id && fold.id !== 'settingsFold' && !prefs.rememberSections) fold.open = false;
   }
 }
 function persistPrefs() {
@@ -528,7 +534,7 @@ function persistPrefs() {
   catch {$('settingsMessage').textContent='Не удалось сохранить настройки в этом браузере.';}
 }
 function rememberMonth() {
-  if (prefs.startMonth !== 'last' || !/^\\d{4}-(0[1-9]|1[0-2])$/.test($('month').value)) return;
+  if (prefs.startMonth !== 'last' || !/^\d{4}-(0[1-9]|1[0-2])$/.test($('month').value)) return;
   prefs.lastMonth=$('month').value;
   try {localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch{}
 }
@@ -547,6 +553,14 @@ $('prefRememberSections').addEventListener('change',()=>{
   }
   persistPrefs();
 });
+for (const [id,key] of [['prefShowInsights','showInsights'],['prefShowBreakdown','showBreakdown']]) {
+  $(id).addEventListener('change',()=>{prefs={...prefs,[key]:$(id).checked};applyPrefs();persistPrefs();});
+}
+$('prefReset').addEventListener('click',()=>{
+  if(!confirm('Сбросить настройки интерфейса? Финансовые записи останутся без изменений.'))return;
+  prefs={...PREF_DEFAULTS,sections:{}};
+  applyPrefs();resetEditor();persistPrefs();
+});
 for(const fold of document.querySelectorAll('details.fold')){
   if(fold.id && fold.id!=='settingsFold')fold.addEventListener('toggle',()=>{
     if(!prefs.rememberSections)return;
@@ -556,6 +570,9 @@ for(const fold of document.querySelectorAll('details.fold')){
 }
 $('month').value = prefs.startMonth==='last' && prefs.lastMonth ? prefs.lastMonth : today().slice(0, 7);
 applyPrefs();
+if (prefs.rememberSections) {
+  for(const fold of document.querySelectorAll('details.fold'))if(fold.id && fold.id!=='settingsFold')fold.open=Boolean(prefs.sections[fold.id]);
+}
 $('type').value = prefs.defaultType;
 $('date').value = today();
 $('limitCategory').replaceChildren(...CATEGORIES.expense.map(x => option(x)));

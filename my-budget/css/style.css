@@ -109,3 +109,24 @@
 @media(max-width:760px){.entry-actions .button,.simple-item .button{min-height:42px}.toolbar .button{min-height:44px}.keyboard-tip{display:none}}
 @media(max-width:480px){.date-control{flex-wrap:wrap}.date-control .button{width:100%}.toolbar #export{width:100%}}
 @media(prefers-reduced-motion:reduce){.fold-chevron,.trend-bar{transition:none}}
+
+/* Level 4.1: date-grouped compact history and mobile usability */
+.history-day{display:grid;gap:8px}
+.history-day+.history-day{margin-top:14px}
+.history-day-title{font-size:13px;font-weight:750;color:#bcd4ed;margin:0;padding:8px 2px 5px;border-bottom:1px solid #2b405a;text-transform:capitalize}
+.history-day .entry{padding:10px 12px;gap:10px}
+.history-day .entry time{font-size:11px}
+.history-day .entry b{font-size:13px}
+.history-day .entry small{font-size:11px}
+.history-day .entry-actions{gap:6px}
+@media(max-width:760px){
+ .history-day .entry{grid-template-columns:minmax(0,1fr) auto;gap:5px 10px;padding:12px}
+ .history-day .entry time{display:none}
+ .history-day .entry>div:not(.entry-actions){grid-column:1;grid-row:1/3;min-width:0}
+ .history-day .entry strong{grid-column:2;grid-row:1;align-self:start;font-size:14px}
+ .history-day .entry .entry-actions{grid-column:1/-1;grid-row:3;justify-content:flex-start;margin-top:4px}
+ .history-day .entry-actions .button{min-height:38px}
+ .fold>summary{min-height:44px}
+ .quick-types .button{min-height:52px}
+}
+@media(max-width:390px){.toolbar{gap:8px}.toolbar label{width:100%}.toolbar input[type=month]{flex:1 1 100%}.toolbar #prevMonth,.toolbar #nextMonth{flex:1}.toolbar #currentMonth{flex:1}}

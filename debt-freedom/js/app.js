@@ -7,10 +7,15 @@ const toCents=value=>{
   const n=Math.round(Number(value)*100);
   return Number.isSafeInteger(n)?n:null;
 };
-function valid(item){return item&&typeof item.id==='string'&&item.id.length>0&&item.id.length<=120&&typeof item.name==='string'&&item.name.trim().length>0&&item.name.length<=80&&Number.isSafeInteger(item.amount)&&item.amount>=0&&item.amount<=1e14&&Number.isSafeInteger(item.payment)&&item.payment>=0&&item.payment<=1e14&&(item.target===undefined||(Number.isSafeInteger(item.target)&&item.target>=0&&item.target<=1e14))&&(item.rate===undefined||(typeof item.rate==='number'&&Number.isFinite(item.rate)&&item.rate>=0&&item.rate<=100))&&(item.due===undefined||item.due===''||validDate(item.due))&&(item.history===undefined||(Array.isArray(item.history)&&item.history.length<=5000&&item.history.every(p=>p&&typeof p.id==='string'&&p.id.length>0&&Number.isSafeInteger(p.cents)&&p.cents>0&&p.cents<=1e14&&validDate(p.date))));}
+function valid(item){return item&&typeof item.id==='string'&&item.id.length>0&&item.id.length<=120&&typeof item.name==='string'&&item.name.trim().length>0&&item.name.length<=80&&Number.isSafeInteger(item.amount)&&item.amount>=0&&item.amount<=1e14&&(item.initialAmount===undefined||(Number.isSafeInteger(item.initialAmount)&&item.initialAmount>=0&&item.initialAmount<=1e14))&&(item.adjustments===undefined||(Array.isArray(item.adjustments)&&item.adjustments.length<=5000&&item.adjustments.every(a=>a&&Number.isSafeInteger(a.delta)&&Math.abs(a.delta)<=1e14&&validDate(a.date))))&&Number.isSafeInteger(item.payment)&&item.payment>=0&&item.payment<=1e14&&(item.target===undefined||(Number.isSafeInteger(item.target)&&item.target>=0&&item.target<=1e14))&&(item.rate===undefined||(typeof item.rate==='number'&&Number.isFinite(item.rate)&&item.rate>=0&&item.rate<=100))&&(item.due===undefined||item.due===''||validDate(item.due))&&(item.history===undefined||(Array.isArray(item.history)&&item.history.length<=5000&&item.history.every(p=>p&&typeof p.id==='string'&&p.id.length>0&&Number.isSafeInteger(p.cents)&&p.cents>0&&p.cents<=1e14&&validDate(p.date))));}
 function validDate(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const d=new Date(s+'T12:00:00');return !Number.isNaN(+d)&&d.toISOString().slice(0,10)===s;}
 function estimate(amount,payment,rate){if(payment<=0)return null;let remaining=amount;const interest=rate/1200;for(let months=1;months<=600;months++){remaining=Math.ceil(remaining*(1+interest)-payment);if(remaining<=0)return months;}return null;}
 const monthsLabel=n=>n===1?'1 месяц':n+' мес.';
+const paid=d=>(d.history||[]).reduce((sum,p)=>sum+p.cents,0);
+const starting=d=>d.initialAmount===undefined?d.amount+paid(d):d.initialAmount;
+const planned=d=>Math.max(d.payment,d.target||0);
+const uid=()=>globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2);
+let visiblePayments=50;
 let debts=[];
 let storageProblem=false;
 try{
@@ -20,19 +25,21 @@ try{
 const el=(tag,content,className='')=>{const node=document.createElement(tag);node.textContent=content;if(className)node.className=className;return node;};
 function render(){
   $('totalDebt').textContent=rub(debts.reduce((sum,d)=>sum+d.amount,0));
-  $('totalPayment').textContent=rub(debts.reduce((sum,d)=>sum+d.payment,0));
+  $('totalPayment').textContent=rub(debts.reduce((sum,d)=>sum+(d.amount>0?d.payment:0),0));
   $('debtCount').textContent=String(debts.filter(d=>d.amount>0).length);
   $('listCount').textContent=debts.length+' шт.';
   renderPayments();
+  renderProgress();
+  renderStrategies();
   const tips=$('guidance');tips.replaceChildren();
   if(!debts.length){tips.append(el('p','Добавь первый долг — здесь появятся рекомендации по его погашению.','muted'));}
   for(const d of debts){
     const tip=el('article','','advice-item');tip.append(el('strong',d.name));
     if(d.amount===0){tip.append(el('p','Долг полностью погашен по введённым данным.','muted'));tips.append(tip);continue;}
-    const planned=d.payment>0?d.payment:(d.target||0);
-    if(!planned){tip.append(el('p','Нет фиксированного платежа и добровольного плана. Определи посильную сумму на месяц, обсуди порядок возврата с кредитором или человеком, которому должен.','muted'));}
-    else {const n=estimate(d.amount,planned,d.rate||0);tip.append(el('p',n?'При '+rub(planned)+'/мес. ориентировочный срок: '+monthsLabel(n)+'.':'При текущей сумме платежа долг не закроется за 50 лет или платёж не покрывает проценты.','muted'));}
-    if(d.due){const date=new Date(d.due+'T12:00:00');tip.append(el('p','Оговоренный срок: '+date.toLocaleDateString('ru-RU')+'. Сверь план с этой датой; если не успеваешь, лучше договориться об условиях заранее.','muted'));}
+    const payment=planned(d);
+    if(!payment){tip.append(el('p','Нет фиксированного платежа и добровольного плана. Определи посильную сумму на месяц, обсуди порядок возврата с кредитором или человеком, которому должен.','muted'));}
+    else {const n=estimate(d.amount,payment,d.rate||0);tip.append(el('p',n?'При '+rub(payment)+'/мес. ориентировочный срок: '+monthsLabel(n)+'.':'При текущей сумме платежа долг не закроется за 50 лет или платёж не покрывает проценты.','muted'));if(d.rate===undefined)tip.append(el('p','Ставка не указана: срок условно рассчитан без процентов и может быть значительно больше.','muted'));}
+    if(d.due){const date=new Date(d.due+'T12:00:00');tip.append(el('p','Оговоренный срок: '+date.toLocaleDateString('ru-RU')+'.','muted'));const deadlineMonths=Math.max(0,Math.ceil((date-new Date(localToday()+'T12:00:00'))/(86400000*30.4375)));const n=estimate(d.amount,payment,d.rate||0);if(!n||n>deadlineMonths)tip.append(el('p','При текущем плане есть риск не успеть к сроку: согласуй новую сумму или дату возврата заранее.','warning'));}
     else if(!d.payment)tip.append(el('p','Срок не указан: это не означает, что долг можно откладывать бесконечно. Лучше согласовать понятные условия возврата.','muted'));
     tips.append(tip);
   }
@@ -43,17 +50,18 @@ function render(){
     const item=el('article','','debt-item');const header=el('div','','debt-item-top');
     const name=el('strong',debt.name);const edit=el('button','Изменить','button secondary');edit.type='button';edit.addEventListener('click',()=>startEdit(debt.id));const remove=el('button','Удалить','button danger');remove.type='button';remove.setAttribute('aria-label','Удалить '+debt.name);
     remove.addEventListener('click',()=>{
-      if(!confirm('Удалить обязательство «'+debt.name+'»?'))return;
+      if(!confirm('Удалить обязательство «'+debt.name+'» вместе со всей историей выплат и корректировок? Восстановить его без резервной копии нельзя.'))return;
       const next=debts.filter(d=>d.id!==debt.id);
       if(!persist(next))return;debts=next;render();
     });
     const controls=el('div','','item-actions');controls.append(edit,remove);header.append(name,controls);
     const figures=el('div','','debt-figures');const amount=el('span','Остаток: ');amount.append(el('b',rub(debt.amount)));
     const pay=el('span',debt.payment>0?'Обязательный платёж/мес.: ':'Без обязательного платежа');if(debt.payment>0)pay.append(el('b',rub(debt.payment)));figures.append(amount,pay);
-    if(debt.target>0&&!debt.payment){const voluntary=el('span','Добровольный план: ');voluntary.append(el('b',rub(debt.target)+'/мес.'));figures.append(voluntary);}
+    if(debt.target>0){const voluntary=el('span','Добровольный план: ');voluntary.append(el('b',rub(debt.target)+'/мес.'));figures.append(voluntary);}
     if(typeof debt.rate==='number'){figures.append(el('span','Ставка: '+debt.rate.toLocaleString('ru-RU')+'% годовых'));}
     if(debt.due){figures.append(el('span','Вернуть к: '+new Date(debt.due+'T12:00:00').toLocaleDateString('ru-RU')));}
-    if(debt.amount===0)item.classList.add('paid-off');
+    if(debt.amount===0){item.classList.add('paid-off');figures.append(el('span','Погашен','positive'));}
+    if((debt.adjustments||[]).length){figures.append(el('span','Ручных корректировок: '+debt.adjustments.length));}
     item.append(header,figures);list.append(item);
   }
 }
@@ -72,7 +80,9 @@ $('debtForm').addEventListener('submit',event=>{
   if(!editingId&&debts.length>=2000){$('formError').textContent='Достигнут лимит обязательств.';return;}
   const original=editingId?debts.find(d=>d.id===editingId):null;
   if(editingId&&!original){$('formError').textContent='Долг для изменения не найден.';return;}
-  const debt={id:original?.id||(globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2)),name,amount,payment,target,...(rate===undefined?{}:{rate}),...(due?{due}:{}),...(original?.history?{history:original.history}:{})};
+  const delta=original?amount-original.amount:0;
+  if(original&&delta!==0&&!confirm('Изменить остаток на '+rub(Math.abs(delta))+' ('+(delta>0?'увеличение':'уменьшение')+')? Это ручная корректировка, она НЕ будет записана как выплата.'))return;
+  const debt={id:original?.id||uid(),name,amount,payment,target,...(rate===undefined?{}:{rate}),...(due?{due}:{}),history:original?.history||[],initialAmount:original?starting(original)+delta:amount,adjustments:original?[...(original.adjustments||[]),...(delta?[{date:localToday(),delta}]:[])]:[]};
   const next=editingId?debts.map(d=>d.id===editingId?debt:d):[...debts,debt];if(!persist(next))return;debts=next;resetEditor();render();$('debtName').focus();
 });
 render();
@@ -104,8 +114,10 @@ function renderPayments(){
   const root=$('paymentHistory');root.replaceChildren();
   const all=debts.flatMap(d=>(d.history||[]).map(p=>({...p,debtId:d.id,name:d.name})))
     .sort((a,b)=>b.date.localeCompare(a.date));
-  if(!all.length){root.append(el('p','Пока нет записанных выплат.','muted'));return;}
-  for(const p of all.slice(0,50)){
+  if(!all.length){$('showMorePayments').hidden=true;$('showAllPayments').hidden=true;root.append(el('p','Пока нет записанных выплат.','muted'));return;}
+  $('showMorePayments').hidden=all.length<=visiblePayments;
+  $('showAllPayments').hidden=all.length<=visiblePayments;
+  for(const p of all.slice(0,visiblePayments)){
     const item=el('div','','payment-row'),info=el('span',p.date+' · '+p.name+' · '+rub(p.cents));
     const undo=el('button','Отменить','button secondary');undo.type='button';
     undo.addEventListener('click',()=>{
@@ -115,7 +127,8 @@ function renderPayments(){
     });
     item.append(info,undo);root.append(item);
   }
-  if(all.length>50)root.append(el('p','Показаны последние 50 выплат. Остальные сохранены в истории данных.','muted'));
+  if(all.length>visiblePayments)root.append(el('p','Показаны '+visiblePayments+' из '+all.length+' выплат.','muted'));
+  if(!all.length){$('showMorePayments').hidden=true;$('showAllPayments').hidden=true;}
 }
 $('paymentForm').addEventListener('submit',event=>{
   event.preventDefault();const id=$('paymentDebt').value,debt=debts.find(d=>d.id===id);
@@ -128,3 +141,59 @@ $('paymentForm').addEventListener('submit',event=>{
   const next=debts.map(d=>d.id===id?{...d,amount:d.amount-cents,history:[...(d.history||[]),{id:idPayment,cents,date}]}:d);
   if(!persist(next,'paymentError'))return;debts=next;$('paymentAmount').value='';render();
 });
+
+$('showMorePayments').addEventListener('click',()=>{visiblePayments+=50;renderPayments();});
+$('showAllPayments').addEventListener('click',()=>{visiblePayments=Number.MAX_SAFE_INTEGER;renderPayments();});
+function renderProgress(){
+  const initial=debts.reduce((sum,d)=>sum+starting(d),0),payments=debts.reduce((sum,d)=>sum+paid(d),0);
+  const remaining=debts.reduce((sum,d)=>sum+d.amount,0);
+  const pct=initial>0?Math.min(100,Math.max(0,100*(initial-remaining)/initial)):0;
+  $('startingTotal').textContent=rub(initial);$('alreadyPaid').textContent=rub(payments);
+  $('paidPercent').textContent=pct.toFixed(1).replace('.',',')+'%';
+  $('paidBar').style.width=pct+'%';
+}
+function simulate(strategy,extra){
+  const active=debts.filter(d=>d.amount>0).map(d=>({name:d.name,remaining:d.amount,rate:d.rate||0,minimum:d.payment||0,voluntary:Math.max(d.payment||0,d.target||0)}));
+  if(!active.length)return {months:0,interest:0,unknown:false};
+  const unknown=debts.some(d=>d.amount>0&&d.rate===undefined);
+  let interestTotal=0;
+  for(let month=1;month<=600;month++){
+    let budget=extra;
+    for(const d of active){
+      if(d.remaining<=0)continue;
+      const interest=Math.ceil(d.remaining*d.rate/1200);
+      if(interestTotal+interest>Number.MAX_SAFE_INTEGER)return {months:null,interest:interestTotal,unknown};
+      interestTotal+=interest;d.remaining+=interest;
+    }
+    for(const d of active){
+      if(d.remaining<=0)continue;
+      const scheduled=Math.min(d.remaining,d.voluntary);
+      d.remaining-=scheduled;
+    }
+    // Any surplus from fulfilled recurring allocations rolls into the avalanche/snowball pool.
+    const newlyPaid=active.filter(d=>d.remaining<=0).reduce((sum,d)=>sum+d.voluntary,0);
+    // Reuse closed debts' baseline payment starting next month, without double counting this month's payment.
+    if(month>1)budget+=active.filter(d=>d.closedAt&&d.closedAt<month).reduce((sum,d)=>sum+d.voluntary,0);
+    // For debts paid off this month, unused scheduled amount is available immediately.
+    for(const d of active)if(d.remaining===0&&!d.closedAt)d.closedAt=month;
+    const candidates=active.filter(d=>d.remaining>0).sort(strategy==='avalanche'?(a,b)=>b.rate-a.rate||a.remaining-b.remaining:(a,b)=>a.remaining-b.remaining||b.rate-a.rate);
+    for(const d of candidates){if(budget<=0)break;const applied=Math.min(d.remaining,budget);d.remaining-=applied;budget-=applied;if(d.remaining===0)d.closedAt=month;}
+    if(active.every(d=>d.remaining<=0))return {months:month,interest:interestTotal,unknown};
+  }
+  return {months:null,interest:interestTotal,unknown};
+}
+function renderStrategies(){
+  const root=$('strategyResults');root.replaceChildren();
+  const extra=toCents($('extraPayment').value);
+  if(extra===null){root.append(el('p','Введите корректную дополнительную сумму.','warning'));return;}
+  if(!debts.some(d=>d.amount>0)){root.append(el('p','Добавь действующие долги для сравнения стратегий.','muted'));return;}
+  for(const [key,label] of [['avalanche','Лавина — высокая ставка'],['snowball','Снежный ком — маленький долг']]){
+    const result=simulate(key,extra),card=el('article','','advice-item');
+    card.append(el('strong',label));
+    card.append(el('p',result.months===null?'При выбранном бюджете долги не закроются за 50 лет.':'Ориентировочный срок: '+monthsLabel(result.months),'muted'));
+    if(result.months!==null)card.append(el('p','Условная сумма процентов: '+rub(result.interest),'muted'));
+    if(result.unknown)card.append(el('p','Есть долги с неизвестной ставкой: в прогнозе для них условно принято 0%.','warning'));
+    root.append(card);
+  }
+}
+$('extraPayment').addEventListener('input',renderStrategies);

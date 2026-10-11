@@ -28,3 +28,9 @@ select:focus-visible{outline:2px solid #8ce3e0;outline-offset:2px}
 #showMorePayments,#showAllPayments{font-size:12px;margin:4px 0}
 @media(max-width:650px){.progress-summary{grid-template-columns:1fr 1fr}.progress-summary article:last-child{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){.progress-track>div{transition:none}}
+
+/* Level 3.1 transparency: correction log and simulation presets */
+.adjustment-log{margin:12px 0 0;padding:10px 12px;border:1px solid #405775;border-radius:10px;font-size:12px;color:#b8cee5}
+.adjustment-log summary{cursor:pointer;font-weight:700;color:#a9e6db}
+.adjustment-log>div{padding:5px 0;border-top:1px solid #31465d;margin-top:6px}
+.extra-presets{margin-top:15px}.extra-presets .button{padding:9px 12px;font-size:12px}

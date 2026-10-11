@@ -39,7 +39,7 @@ function render(){
     const payment=planned(d);
     if(!payment){tip.append(el('p','Нет фиксированного платежа и добровольного плана. Определи посильную сумму на месяц, обсуди порядок возврата с кредитором или человеком, которому должен.','muted'));}
     else {const n=estimate(d.amount,payment,d.rate||0);tip.append(el('p',n?'При '+rub(payment)+'/мес. ориентировочный срок: '+monthsLabel(n)+'.':'При текущей сумме платежа долг не закроется за 50 лет или платёж не покрывает проценты.','muted'));if(d.rate===undefined)tip.append(el('p','Ставка не указана: срок условно рассчитан без процентов и может быть значительно больше.','muted'));}
-    if(d.due){const date=new Date(d.due+'T12:00:00');tip.append(el('p','Оговоренный срок: '+date.toLocaleDateString('ru-RU')+'.','muted'));const deadlineMonths=Math.max(0,Math.ceil((date-new Date(localToday()+'T12:00:00'))/(86400000*30.4375)));const n=estimate(d.amount,payment,d.rate||0);if(!n||n>deadlineMonths)tip.append(el('p','При текущем плане есть риск не успеть к сроку: согласуй новую сумму или дату возврата заранее.','warning'));}
+    if(d.due){const date=new Date(d.due+'T12:00:00');tip.append(el('p','Оговоренный срок: '+date.toLocaleDateString('ru-RU')+'.','muted'));const deadlineMonths=Math.max(0,Math.ceil((date-new Date(localToday()+'T12:00:00'))/(86400000*30.4375)));const n=estimate(d.amount,payment,d.rate||0);if(!n||n>deadlineMonths){tip.append(el('p','При текущем плане есть риск не успеть к сроку: согласуй новую сумму или дату возврата заранее.','warning'));if(deadlineMonths>0)tip.append(el('p','Для возврата без процентов до срока ориентир: '+rub(Math.ceil(d.amount/deadlineMonths))+'/мес. При начислении процентов потребуется больше.','muted'));}}
     else if(!d.payment)tip.append(el('p','Срок не указан: это не означает, что долг можно откладывать бесконечно. Лучше согласовать понятные условия возврата.','muted'));
     tips.append(tip);
   }
@@ -61,7 +61,7 @@ function render(){
     if(typeof debt.rate==='number'){figures.append(el('span','Ставка: '+debt.rate.toLocaleString('ru-RU')+'% годовых'));}
     if(debt.due){figures.append(el('span','Вернуть к: '+new Date(debt.due+'T12:00:00').toLocaleDateString('ru-RU')));}
     if(debt.amount===0){item.classList.add('paid-off');figures.append(el('span','Погашен','positive'));}
-    if((debt.adjustments||[]).length){figures.append(el('span','Ручных корректировок: '+debt.adjustments.length));}
+    if((debt.adjustments||[]).length){const changes=el('details','','adjustment-log');changes.append(el('summary','Корректировки остатка: '+debt.adjustments.length));for(const change of debt.adjustments){changes.append(el('div',change.date+' · '+(change.delta>0?'+':'−')+rub(Math.abs(change.delta)),'muted'));}item.append(changes);}
     item.append(header,figures);list.append(item);
   }
 }
@@ -198,5 +198,6 @@ function renderStrategies(){
   }
 }
 $('extraPayment').addEventListener('input',renderStrategies);
+for(const btn of document.querySelectorAll('[data-extra]'))btn.addEventListener('click',()=>{$('extraPayment').value=btn.dataset.extra;renderStrategies();});
 
 render();

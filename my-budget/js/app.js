@@ -525,6 +525,7 @@ function applyPrefs() {
   $('prefShowBreakdown').checked=prefs.showBreakdown;
   $('insightsPanel').hidden=!prefs.showInsights;
   $('breakdownPanel').hidden=!prefs.showBreakdown;
+  $('breakdownPanel').parentElement.classList.toggle('single-column',!prefs.showBreakdown);
   for (const fold of document.querySelectorAll('details.fold')) {
     if (fold.id && fold.id !== 'settingsFold' && !prefs.rememberSections) fold.open = false;
   }

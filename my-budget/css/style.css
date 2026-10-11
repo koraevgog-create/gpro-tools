@@ -222,3 +222,22 @@ input:focus,select:focus{border-color:#84caff}
 .storage-alert h2{color:#ffcbbe;margin:0 0 10px}
 .storage-alert p{line-height:1.6}
 .storage-alert[hidden],#insightsPanel[hidden],#breakdownPanel[hidden]{display:none!important}
+
+/* Level 8: compact limit editing, feedback and small-screen controls */
+.limit-edit{margin-top:12px;padding:9px 13px;font-size:12px}
+#limitMessage{min-height:18px;margin:12px 0 0;color:#8be4c5;line-height:1.5}
+#limitAmountHelp{line-height:1.55;margin:10px 0 0}
+.limit-item .limit-row strong{overflow-wrap:anywhere}
+.limit-summary-grid strong{overflow-wrap:anywhere}
+@media(hover:hover){
+  .limit-edit:hover,.button.secondary:hover{filter:brightness(1.13)}
+  .button:not(.secondary):not(.danger):hover{filter:brightness(1.07)}
+}
+@media(max-width:620px){
+  .limit-edit{min-height:42px}
+  .limit-row{align-items:flex-start;flex-wrap:wrap}
+  .limit-row span{text-align:left}
+  .toolbar .button{min-height:44px}
+  .backup-actions .button,.backup-import{min-height:44px}
+}
+@media(prefers-reduced-motion:reduce){.button{transition:none}}

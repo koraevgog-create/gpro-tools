@@ -187,7 +187,16 @@ function renderHistory(data) {
     root.append(element('div', data.length ? 'Нет операций по выбранным фильтрам.' : 'За этот месяц операций пока нет.', 'empty'));
     return;
   }
+  let activeDate = '';
+  let group = null;
   for (const e of [...filtered].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id))) {
+    if (e.date !== activeDate) {
+      activeDate = e.date;
+      group = element('div', '', 'history-day');
+      const heading = element('h3', new Date(e.date + 'T12:00:00').toLocaleDateString('ru-RU', {weekday:'long', day:'numeric', month:'long'}), 'history-day-title');
+      group.append(heading);
+      root.append(group);
+    }
     const item = element('div', '', 'entry');
     const date = element('time', new Date(e.date + 'T12:00:00').toLocaleDateString('ru-RU', {day: '2-digit', month: 'short'}));
     date.dateTime = e.date;
@@ -211,7 +220,7 @@ function renderHistory(data) {
     });
     actions.append(edit, remove);
     item.append(date, info, amount, actions);
-    root.append(item);
+    group.append(item);
   }
 }
 

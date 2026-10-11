@@ -398,6 +398,12 @@ $('dataCheck').addEventListener('click',()=>{
   $('dataCheckMessage').classList.toggle('positive',result.ok);
 });
 $('backupExport').addEventListener('click', () => {
+  const result=checkStoredData();
+  if(!result.ok){
+    showStorageAlert(result.message);
+    $('backupMessage').textContent='Обнаружена проблема с данными. Вместо обычной копии скачай аварийную копию из предупреждения.';
+    return;
+  }
   downloadJSON(currentBackup(),
     'gpro-budget-backup-' + today() + '.json');
   $('backupMessage').textContent = 'Резервная копия подготовлена для скачивания.';
@@ -412,9 +418,9 @@ $('backupImport').addEventListener('change', async event => {
   try {
     const data = JSON.parse(await file.text());
     if (!validBackup(data)) { msg.textContent = 'Неверный формат или содержимое резервной копии.'; return; }
-    if (!confirm('Заменить текущие операции, лимиты, планы, шаблоны и настройки данными из резервной копии? Это действие нельзя отменить.')) return;
-    const restoredPlans = data.version >= 2 ? data.plans : [];
-    const restoredRecurring = data.version >= 2 ? data.recurring : [];
+    if (!confirm('Восстановить данные из копии? Текущие операции и лимиты будут заменены. Старые шаблоны и настройки сохранятся, если их нет в копии. Перед заменой рекомендуется скачать резервную копию.')) return;
+    const restoredPlans = data.version >= 2 ? data.plans : plans;
+    const restoredRecurring = data.version >= 2 ? data.recurring : recurring;
     const restoredPrefs = data.version === 3 ? data.preferences : prefs;
     if (!savePair([[KEY,data.entries],[LIMIT_KEY,data.limits],[PLAN_KEY,restoredPlans],[RECUR_KEY,restoredRecurring],[PREF_KEY,restoredPrefs]],'backupMessage')) return;
     entries = data.entries;
@@ -427,6 +433,8 @@ $('backupImport').addEventListener('change', async event => {
     resetEditor();
     updateFilterCategories();
     render();
+    $('storageAlert').hidden=true;
+    $('dataCheckMessage').textContent='';
     msg.textContent = 'Данные восстановлены: ' + entries.length + ' операций.';
   } catch {
     msg.textContent = 'Не удалось прочитать или сохранить файл. Данные не импортированы.';

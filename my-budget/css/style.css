@@ -81,3 +81,15 @@
 #copyLimits{margin:10px 0 18px}
 @media(max-width:680px){.forecast-grid{grid-template-columns:1fr}.simple-item{align-items:flex-start;flex-direction:column}.simple-actions{width:100%}}
 @media(max-width:480px){.compact-fields{grid-template-columns:1fr}.compact-fields .full{grid-column:auto}.compact-fields>.button{width:100%}}
+
+/* v0.3.3: collapsible budget sections */
+.fold>summary{list-style:none;cursor:pointer;user-select:none;min-height:36px}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary h2{margin:0}
+.fold>summary .hint{margin-left:auto}
+.fold-chevron{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;border:1px solid #354a66;color:#c6dbf6;font-size:24px;line-height:1;transition:transform .18s ease;flex-shrink:0}
+.fold[open] .fold-chevron{transform:rotate(180deg)}
+.fold>summary:hover .fold-chevron{background:#263d57}
+.fold>summary:focus-visible{outline:2px solid #8bcaff;outline-offset:6px;border-radius:6px}
+.fold-body{padding-top:12px}
+@media(max-width:560px){.fold>summary{flex-wrap:wrap}.fold>summary .hint{order:3;flex-basis:100%;margin-left:0}.fold-chevron{margin-left:auto}}

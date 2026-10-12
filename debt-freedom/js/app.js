@@ -175,47 +175,70 @@ function renderProgress(){
   $('paidBar').style.width=pct+'%';
 }
 function simulate(strategy,extra){
-  const active=debts.filter(d=>d.amount>0).map(d=>({name:d.name,remaining:d.amount,rate:d.rate||0,minimum:d.payment||0,voluntary:Math.max(d.payment||0,d.target||0)}));
-  if(!active.length)return {months:0,interest:0,unknown:false};
+  const active=debts.filter(d=>d.amount>0).map(d=>({
+    id:d.id,name:d.name,remaining:d.amount,rate:d.rate??0,minimum:d.payment||0,
+    monthly:Math.max(d.payment||0,d.target||0)
+  }));
+  if(!active.length)return {months:0,interest:0,unknown:false,order:[]};
   const unknown=debts.some(d=>d.amount>0&&d.rate===undefined);
+  // Planned monthly transfers form ONE shared budget: do not duplicate
+  // liberated installments as debts close.
+  const totalMonthly=active.reduce((sum,d)=>sum+d.monthly,0)+extra;
+  if(!Number.isSafeInteger(totalMonthly)||totalMonthly>Number.MAX_SAFE_INTEGER)
+    return {months:null,interest:0,unknown,order:[],invalid:true};
   let interestTotal=0;
+  const order=[];
   for(let month=1;month<=600;month++){
-    let budget=extra;
     for(const d of active){
       if(d.remaining<=0)continue;
       const interest=Math.ceil(d.remaining*d.rate/1200);
-      if(interestTotal+interest>Number.MAX_SAFE_INTEGER)return {months:null,interest:interestTotal,unknown};
+      if(!Number.isSafeInteger(interest)||interestTotal+interest>Number.MAX_SAFE_INTEGER)
+        return {months:null,interest:interestTotal,unknown,order,invalid:true};
       interestTotal+=interest;d.remaining+=interest;
     }
+    let pool=totalMonthly;
+    // First meet contractual minimums for every open debt.
     for(const d of active){
       if(d.remaining<=0)continue;
-      const scheduled=Math.min(d.remaining,d.voluntary);
-      d.remaining-=scheduled;
+      const amount=Math.min(d.remaining,d.minimum);
+      pool-=amount;d.remaining-=amount;
+      if(d.remaining===0)order.push({name:d.name,month});
     }
-    // Any surplus from fulfilled recurring allocations rolls into the avalanche/snowball pool.
-    // Reuse closed debts' baseline payment starting next month, without double counting this month's payment.
-    if(month>1)budget+=active.filter(d=>d.closedAt&&d.closedAt<month).reduce((sum,d)=>sum+d.voluntary,0);
-    // For debts paid off this month, unused scheduled amount is available immediately.
-    for(const d of active)if(d.remaining===0&&!d.closedAt)d.closedAt=month;
-    const candidates=active.filter(d=>d.remaining>0).sort(strategy==='avalanche'?(a,b)=>b.rate-a.rate||a.remaining-b.remaining:(a,b)=>a.remaining-b.remaining||b.rate-a.rate);
-    for(const d of candidates){if(budget<=0)break;const applied=Math.min(d.remaining,budget);d.remaining-=applied;budget-=applied;if(d.remaining===0)d.closedAt=month;}
-    if(active.every(d=>d.remaining<=0))return {months:month,interest:interestTotal,unknown};
+    // Then distribute all free capacity in selected priority order.
+    const candidates=active.filter(d=>d.remaining>0).sort(strategy==='avalanche'
+      ?(a,b)=>b.rate-a.rate||a.remaining-b.remaining||a.name.localeCompare(b.name,'ru')
+      :(a,b)=>a.remaining-b.remaining||b.rate-a.rate||a.name.localeCompare(b.name,'ru'));
+    for(const d of candidates){
+      if(pool<=0)break;
+      const amount=Math.min(d.remaining,pool);
+      d.remaining-=amount;pool-=amount;
+      if(d.remaining===0)order.push({name:d.name,month});
+    }
+    if(active.every(d=>d.remaining===0))return {months:month,interest:interestTotal,unknown,order};
   }
-  return {months:null,interest:interestTotal,unknown};
+  return {months:null,interest:interestTotal,unknown,order};
 }
 function renderStrategies(){
   const root=$('strategyResults');root.replaceChildren();
   const extra=toCents($('extraPayment').value);
   if(extra===null){root.append(el('p','Введите корректную дополнительную сумму.','warning'));return;}
   if(!debts.some(d=>d.amount>0)){root.append(el('p','Добавь действующие долги для сравнения стратегий.','muted'));return;}
+  const scenarios=[];
   for(const [key,label] of [['avalanche','Лавина — высокая ставка'],['snowball','Снежный ком — маленький долг']]){
-    const result=simulate(key,extra),card=el('article','','advice-item');
+    const result=simulate(key,extra);scenarios.push(result);
+    const card=el('article','','advice-item');
     card.append(el('strong',label));
-    card.append(el('p',result.months===null?'При выбранном бюджете долги не закроются за 50 лет.':'Ориентировочный срок: '+monthsLabel(result.months),'muted'));
-    if(result.months!==null)card.append(el('p','Условная сумма процентов: '+rub(result.interest),'muted'));
-    if(result.unknown)card.append(el('p','Есть долги с неизвестной ставкой: в прогнозе для них условно принято 0%.','warning'));
+    if(result.invalid)card.append(el('p','Слишком большие суммы для надёжного расчёта. Уменьши значения.','warning'));
+    else card.append(el('p',result.months===null?'По этой модели за 50 лет все долги не закрываются.':'Ориентировочный срок: '+monthsLabel(result.months),'muted'));
+    if(!result.invalid)card.append(el('p','Условная сумма процентов: '+rub(result.interest),'muted'));
+    const plan=result.order.length?result.order.map((d,i)=>(i+1)+'. '+d.name+' — месяц '+d.month).join(' → '):'Нет долгов, закрытых при выбранном бюджете.';
+    card.append(el('p','Порядок закрытия: '+plan,'muted'));
+    if(result.unknown)card.append(el('p','Есть неизвестные ставки: они условно приняты за 0%, поэтому сравнение может быть неточным.','warning'));
     root.append(card);
   }
+  if(extra===0)root.append(el('p','Доплата равна нулю. Если обязательные платежи сами закрывают долги, обе стратегии могут дать одинаковый срок.','muted'));
+  if(scenarios.every(x=>x.months!==null)&&scenarios[0].months===scenarios[1].months&&scenarios[0].interest===scenarios[1].interest)
+    root.append(el('p','Для этих данных обе стратегии дают одинаковый срок и проценты. Сравни порядок закрытия долгов или увеличь дополнительный платёж.','muted'));
 }
 $('extraPayment').addEventListener('input',renderStrategies);
 for(const btn of document.querySelectorAll('[data-extra]'))btn.addEventListener('click',()=>{$('extraPayment').value=btn.dataset.extra;renderStrategies();});

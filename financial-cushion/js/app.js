@@ -63,8 +63,10 @@ const today=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOff
 $('operationDate').value=today();
 function renderOperations(){
   const root=$('operationHistory');root.replaceChildren();
-  if(!operations.length){const p=document.createElement('p');p.className='muted';p.textContent='Операций пока нет.';root.append(p);return;}
-  for(const o of [...operations].sort((a,b)=>b.date.localeCompare(a.date))){
+  const visible=operations.filter(o=>$('historyFilter').value==='all'||o.type===$('historyFilter').value);
+  $('operationsCount').textContent=operations.length+' операций';
+  if(!visible.length){const p=document.createElement('p');p.className='muted';p.textContent=operations.length?'Нет операций выбранного типа.':'Операций пока нет.';root.append(p);return;}
+  for(const o of [...visible].sort((a,b)=>b.date.localeCompare(a.date))){
     const row=document.createElement('div');row.className='operation-row';
     const desc=document.createElement('span');desc.textContent=o.date+' · '+(o.type==='deposit'?'+':'−')+rub(o.amount)+(o.note?' · '+o.note:'');
     const undo=document.createElement('button');undo.className='button secondary';undo.type='button';undo.textContent='Отменить';
@@ -100,6 +102,15 @@ $('operationForm').addEventListener('submit',event=>{
   const nextHistory=[...operations,entry];
   try{const previous=localStorage.getItem(KEY);localStorage.setItem(KEY,JSON.stringify({expenses,saved:next,months,contribution}));try{localStorage.setItem(HISTORY_KEY,JSON.stringify(nextHistory));}catch(error){if(previous===null)localStorage.removeItem(KEY);else localStorage.setItem(KEY,previous);throw error;}}
   catch{$('operationError').textContent='Не удалось сохранить операцию. Проверь хранилище.';return;}
-  operations=nextHistory;$('saved').value=(next/100).toFixed(2);$('operationAmount').value='';$('operationNote').value='';render(result);renderOperations();
+  operations=nextHistory;$('saved').value=(next/100).toFixed(2);$('operationAmount').value='';$('operationNote').value='';$('operationDate').value=today();render(result);renderOperations();$('operationAmount').focus();
 });
+$('historyFilter').addEventListener('change',renderOperations);
+for(const button of document.querySelectorAll('[data-quick]')){
+  button.addEventListener('click',()=>{
+    $('operationType').value='deposit';
+    $('operationAmount').value=button.dataset.quick;
+    $('operationAmount').focus();
+    $('transactionsPanel').scrollIntoView({behavior:'smooth',block:'start'});
+  });
+}
 renderOperations();

@@ -129,6 +129,7 @@ function renderPayments(){
   for(const d of live){const o=document.createElement('option');o.value=d.id;o.textContent=d.name+' — '+rub(d.amount);select.append(o);}
   if(live.some(d=>d.id===previous))select.value=previous;
   $('paymentAmount').disabled=!live.length;$('paymentDebt').disabled=!live.length;
+  $('paymentForm').querySelector('button[type="submit"]').disabled=!live.length;
   const historyFilter=$('historyDebt'),oldHistoryFilter=historyFilter.value;
   historyFilter.replaceChildren();
   const every=document.createElement('option');every.value='all';every.textContent='Все обязательства';historyFilter.append(every);
@@ -165,6 +166,7 @@ $('paymentForm').addEventListener('submit',event=>{
   const idPayment=globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2);
   const next=debts.map(d=>d.id===id?{...d,amount:d.amount-cents,history:[...(d.history||[]),{id:idPayment,cents,date}]}:d);
   if(!persist(next,'paymentError'))return;debts=next;$('paymentAmount').value='';render();$('paymentMessage').textContent='Выплата '+rub(cents)+' записана. Остаток уменьшен.';
+  $('paymentDate').value=localToday();
 });
 
 $('showMorePayments').addEventListener('click',()=>{visiblePayments+=50;renderPayments();});
@@ -274,7 +276,7 @@ setGuide(guideVisible);
 function checkStorage(){
   try{
     const raw=localStorage.getItem(KEY);
-    if(raw===null)return {ok:true,message:'Хранилище доступно. Долгов пока нет.'};
+    if(raw===null)return storageProblem?{ok:false,message:'При загрузке возникла проблема с хранилищем. Сохранение заблокировано.'}:{ok:true,message:'Хранилище доступно. Долгов пока нет.'};
     const data=JSON.parse(raw);
     if(!Array.isArray(data)||data.length>2000||!data.every(valid)||
        new Set(data.map(d=>d.id)).size!==data.length)
@@ -318,21 +320,22 @@ $('emergencyBackup').addEventListener('click',()=>{
     'gpro-debt-freedom-emergency-'+localToday()+'.json');
 });
 $('restoreBackup').addEventListener('change',async event=>{
-  const file=event.target.files?.[0];event.target.value='';
+  const file=event.target.files?.[0];event.target.value='';$('backupStatus').textContent='';
   if(!file)return;
   if(file.size>5*1024*1024){$('backupStatus').textContent='Файл слишком большой (максимум 5 МБ).';return;}
   try{
     const restored=JSON.parse(await file.text());
     if(!validBackup(restored)){$('backupStatus').textContent='Некорректная резервная копия. Ничего не изменено.';return;}
     if(!confirm('Заменить все долги и историю выплат данными из этого файла? Сначала сохрани текущие данные отдельной копией.'))return;
-    const old=localStorage.getItem(KEY);
     try{localStorage.setItem(KEY,JSON.stringify(restored.debts));}
     catch{
       // A single-key write is atomic in conforming localStorage implementations.
       $('backupStatus').textContent='Не удалось сохранить импорт. Текущие данные не заменены.';
       return;
     }
-    debts=restored.debts;storageProblem=false;resetEditor();render();
+    debts=restored.debts;storageProblem=false;visiblePayments=50;
+    $('debtSearch').value='';$('debtFilter').value='active';$('paymentMessage').textContent='';
+    resetEditor();render();
     showStorageStatus(checkStorage());
     $('backupStatus').textContent='Данные восстановлены: '+debts.length+' обязательств.';
   }catch{

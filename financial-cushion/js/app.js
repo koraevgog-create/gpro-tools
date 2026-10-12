@@ -189,7 +189,7 @@ $('importBackup').addEventListener('change',async event=>{
      $('months').value=[3,6,9,12].includes(x.months)?String(x.months):'custom';
      $('customMonthsWrap').hidden=$('months').value!=='custom';$('customMonths').value=x.months;
      render(calculate(x.expenses,x.saved,x.months,x.contribution));
-   }else{$('resetForm').click();}
+   }else{$('calcForm').reset();}
    applyPreferences();renderOperations();$('backupMessage').textContent='Копия восстановлена. Операций: '+operations.length+'.';
  }catch{$('backupMessage').textContent='Не удалось сохранить восстановленные данные. Текущие записи проверь вручную.';}
 });

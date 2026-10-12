@@ -223,4 +223,27 @@ for(const id of ['debtSearch','debtFilter','debtSort'])$(id).addEventListener(id
 $('historyDebt').addEventListener('change',()=>{visiblePayments=50;renderPayments();});
 $('paymentForm').addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();$('paymentForm').requestSubmit();}});
 
+const VIEW_KEY='gpro-debt-freedom-view-v1';
+let viewPrefs={mode:'simple',guide:true};
+try{const saved=JSON.parse(localStorage.getItem(VIEW_KEY)||'null');if(saved&&['simple','advanced'].includes(saved.mode)&&typeof saved.guide==='boolean')viewPrefs=saved;}catch{}
+function applyView(){
+  const detailed=viewPrefs.mode==='advanced';
+  document.body.classList.toggle('simple-view',!detailed);
+  $('simpleView').setAttribute('aria-pressed',String(!detailed));
+  $('advancedView').setAttribute('aria-pressed',String(detailed));
+  $('simpleView').classList.toggle('secondary',detailed);
+  $('advancedView').classList.toggle('secondary',!detailed);
+  $('quickGuide').hidden=!viewPrefs.guide;
+}
+function updateView(next){
+  viewPrefs={...viewPrefs,...next};
+  try{localStorage.setItem(VIEW_KEY,JSON.stringify(viewPrefs));}catch{}
+  applyView();
+}
+$('simpleView').addEventListener('click',()=>updateView({mode:'simple'}));
+$('advancedView').addEventListener('click',()=>updateView({mode:'advanced'}));
+$('hideGuide').addEventListener('click',()=>updateView({guide:false}));
+$('openGuide').addEventListener('click',()=>{updateView({guide:true});$('quickGuide').scrollIntoView({behavior:'smooth',block:'start'});});
+applyView();
+
 render();

@@ -103,3 +103,14 @@ body{background:radial-gradient(ellipse 850px 500px at 70% -12%,#28486d 0%,trans
 .payment-fold-body{padding-top:14px}
 .payment-fold>summary:focus-visible{outline:2px solid #8ce3e0;outline-offset:4px;border-radius:4px}
 @media(max-width:500px){.payment-fold>summary{font-size:18px}.payment-fold .fold-caption{font-size:11px;max-width:135px}}
+
+/* Level 7: backup and integrity controls */
+.backup-panel{margin-top:18px}
+.backup-panel .form-actions{margin:20px 0 12px;align-items:stretch}
+.backup-import{display:inline-flex;align-items:center;justify-content:center;border:1px solid #56837e;border-radius:11px;padding:11px 15px;background:#1d3847;color:#dcf7f1;font-size:13px;font-weight:700;cursor:pointer;min-height:44px}
+.backup-import input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.backup-import:focus-within{outline:2px solid #8ce3e0;outline-offset:3px}
+.data-warning{border:1px solid #b57d72;background:#372932;padding:16px;margin-top:15px;border-radius:13px;color:#ffd8cc}
+.data-warning p{line-height:1.6;font-size:13px}
+.data-warning[hidden]{display:none}
+@media(max-width:500px){.backup-panel .form-actions>*{width:100%;text-align:center}}

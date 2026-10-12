@@ -237,9 +237,11 @@ try{
 function setGuide(visible){
   guideVisible=visible;
   $('quickGuide').hidden=!visible;
+  $('openGuide').hidden=visible;
   try{localStorage.setItem(GUIDE_KEY,String(visible));}catch{}
 }
 $('hideGuide').addEventListener('click',()=>setGuide(false));
+$('openGuide').addEventListener('click',()=>{setGuide(true);$('quickGuide').scrollIntoView({behavior:'smooth',block:'start'});});
 setGuide(guideVisible);
 
 render();

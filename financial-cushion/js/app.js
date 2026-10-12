@@ -66,7 +66,7 @@ function renderOperations(){
   const visible=operations.filter(o=>$('historyFilter').value==='all'||o.type===$('historyFilter').value);
   $('operationsCount').textContent=operations.length+' операций';
   if(!visible.length){const p=document.createElement('p');p.className='muted';p.textContent=operations.length?'Нет операций выбранного типа.':'Операций пока нет.';root.append(p);return;}
-  for(const o of [...visible].sort((a,b)=>b.date.localeCompare(a.date))){
+  for(const o of [...visible].sort((a,b)=>(preferences.historyOrder==='oldest'?a.date.localeCompare(b.date):b.date.localeCompare(a.date)))){
     const row=document.createElement('div');row.className='operation-row';
     const desc=document.createElement('span');desc.textContent=o.date+' · '+(o.type==='deposit'?'+':'−')+rub(o.amount)+(o.note?' · '+o.note:'');
     const undo=document.createElement('button');undo.className='button secondary';undo.type='button';undo.textContent='Отменить';
@@ -113,4 +113,32 @@ for(const button of document.querySelectorAll('[data-quick]')){
     $('transactionsPanel').scrollIntoView({behavior:'smooth',block:'start'});
   });
 }
-renderOperations();
+const PREF_KEY='gpro-emergency-fund-preferences-v1';
+const defaultPreferences=()=>({accent:'forest',hideAmounts:false,historyOrder:'newest'});
+let preferences=defaultPreferences();
+try{
+  const stored=JSON.parse(localStorage.getItem(PREF_KEY)||'null');
+  if(stored&&typeof stored==='object'){
+    if(['forest','gold'].includes(stored.accent))preferences.accent=stored.accent;
+    if(typeof stored.hideAmounts==='boolean')preferences.hideAmounts=stored.hideAmounts;
+    if(['newest','oldest'].includes(stored.historyOrder))preferences.historyOrder=stored.historyOrder;
+  }
+}catch{}
+function applyPreferences(){
+  document.body.dataset.accent=preferences.accent;
+  document.body.classList.toggle('mask-amounts',preferences.hideAmounts);
+  $('accentChoice').value=preferences.accent;
+  $('historyOrder').value=preferences.historyOrder;
+  $('hideAmounts').checked=preferences.hideAmounts;
+  renderOperations();
+}
+function savePreferences(){
+  try{localStorage.setItem(PREF_KEY,JSON.stringify(preferences));$('settingsStatus').textContent='Настройки сохранены.';}
+  catch{$('settingsStatus').textContent='Настройки применены, но браузер не смог их сохранить.';}
+  applyPreferences();
+}
+$('accentChoice').addEventListener('change',()=>{preferences.accent=$('accentChoice').value;savePreferences();});
+$('historyOrder').addEventListener('change',()=>{preferences.historyOrder=$('historyOrder').value;savePreferences();});
+$('hideAmounts').addEventListener('change',()=>{preferences.hideAmounts=$('hideAmounts').checked;savePreferences();});
+$('resetPreferences').addEventListener('click',()=>{preferences=defaultPreferences();savePreferences();});
+applyPreferences();

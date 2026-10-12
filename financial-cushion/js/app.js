@@ -189,7 +189,7 @@ $('importBackup').addEventListener('change',async event=>{
      $('months').value=[3,6,9,12].includes(x.months)?String(x.months):'custom';
      $('customMonthsWrap').hidden=$('months').value!=='custom';$('customMonths').value=x.months;
      render(calculate(x.expenses,x.saved,x.months,x.contribution));
-   }else{$('calcForm').reset();}
+   }else{$('calcForm').reset();for(const id of ['target','coverage','missing','eta'])$(id).textContent='—';$('progressBar').style.width='0';$('progressTrack').setAttribute('aria-valuenow','0');$('resultStatus').textContent='Ожидает расчёта';$('milestoneList').textContent='Сначала рассчитай финансовую подушку.';$('scenarioList').textContent='После расчёта появятся варианты накопления.';}
    applyPreferences();renderOperations();$('backupMessage').textContent='Копия восстановлена. Операций: '+operations.length+'.';
  }catch{$('backupMessage').textContent='Не удалось сохранить восстановленные данные. Текущие записи проверь вручную.';}
 });

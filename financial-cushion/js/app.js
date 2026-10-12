@@ -142,3 +142,55 @@ $('historyOrder').addEventListener('change',()=>{preferences.historyOrder=$('his
 $('hideAmounts').addEventListener('change',()=>{preferences.hideAmounts=$('hideAmounts').checked;savePreferences();});
 $('resetPreferences').addEventListener('click',()=>{preferences=defaultPreferences();savePreferences();});
 applyPreferences();
+
+
+/* Level 7: verified portable backup of all local records */
+function validOperation(o){return o&&typeof o.id==='string'&&o.id.length>0&&o.id.length<150&&['deposit','withdrawal'].includes(o.type)&&Number.isSafeInteger(o.amount)&&o.amount>0&&o.amount<=1e14&&typeof o.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(o.date)&&typeof o.note==='string'&&o.note.length<=80;}
+function validCalc(x){return x&&calculate(x.expenses,x.saved,x.months,x.contribution)!==null;}
+function validPrefs(p){return p&&['forest','gold'].includes(p.accent)&&typeof p.hideAmounts==='boolean'&&['newest','oldest'].includes(p.historyOrder);}
+function validSnapshot(o){return o&&o.app==='gpro-emergency-fund'&&o.version===1&&(o.calculation===null||validCalc(o.calculation))&&Array.isArray(o.operations)&&o.operations.length<=5000&&o.operations.every(validOperation)&&new Set(o.operations.map(x=>x.id)).size===o.operations.length&&validPrefs(o.preferences);}
+function storageCheck(){
+ try{
+   const c=localStorage.getItem(KEY),h=localStorage.getItem(HISTORY_KEY),p=localStorage.getItem(PREF_KEY);
+   if(c!==null&&!validCalc(JSON.parse(c)))return 'Повреждённые параметры расчёта.';
+   if(h!==null){const x=JSON.parse(h);if(!Array.isArray(x)||x.length>5000||!x.every(validOperation)||new Set(x.map(v=>v.id)).size!==x.length)return 'Повреждена история операций.';}
+   if(p!==null){const x=JSON.parse(p);if(!validPrefs(x))return 'Повреждены настройки.';}
+   return null;
+ }catch{return 'Не удалось прочитать данные браузера.';}
+}
+function downloadBackup(data){
+ const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}));
+ const link=document.createElement('a');link.href=url;link.download='gpro-financial-cushion-'+today()+'.json';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+$('checkData').addEventListener('click',()=>{$('backupMessage').textContent=storageCheck()||'Проверка пройдена. Рекомендуем периодически скачивать резервную копию.';});
+$('exportBackup').addEventListener('click',()=>{
+ const problem=storageCheck();if(problem){$('backupMessage').textContent='Экспорт остановлен: '+problem+' Не очищай данные браузера.';return;}
+ const calculation=JSON.parse(localStorage.getItem(KEY)||'null');
+ const snapshot={app:'gpro-emergency-fund',version:1,exportedAt:new Date().toISOString(),calculation,operations:JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'),preferences};
+ downloadBackup(snapshot);$('backupMessage').textContent='Резервная копия подготовлена к скачиванию.';
+});
+$('importBackup').addEventListener('change',async event=>{
+ const file=event.target.files?.[0];event.target.value='';if(!file)return;
+ if(file.size>4*1024*1024){$('backupMessage').textContent='Файл слишком большой (не более 4 МБ).';return;}
+ let payload;
+ try{payload=JSON.parse(await file.text());}catch{$('backupMessage').textContent='Не удалось прочитать JSON-файл.';return;}
+ if(!validSnapshot(payload)){$('backupMessage').textContent='Файл не подходит: данные не изменены.';return;}
+ if(!confirm('Заменить расчёт, историю операций и настройки данными из файла?'))return;
+ try{
+   const original=[KEY,HISTORY_KEY,PREF_KEY].map(k=>localStorage.getItem(k));
+   const values=[payload.calculation===null?null:JSON.stringify(payload.calculation),JSON.stringify(payload.operations),JSON.stringify(payload.preferences)];
+   let changed=0;
+   try{for(let i=0;i<3;i++){if(values[i]===null)localStorage.removeItem([KEY,HISTORY_KEY,PREF_KEY][i]);else localStorage.setItem([KEY,HISTORY_KEY,PREF_KEY][i],values[i]);changed++;}}
+   catch(e){for(let i=0;i<changed;i++){try{if(original[i]===null)localStorage.removeItem([KEY,HISTORY_KEY,PREF_KEY][i]);else localStorage.setItem([KEY,HISTORY_KEY,PREF_KEY][i],original[i]);}catch{}}throw e;}
+   operations=payload.operations;preferences=payload.preferences;
+   if(payload.calculation){
+     const x=payload.calculation;
+     for(const id of ['expenses','saved','contribution'])$(id).value=(x[id]/100).toFixed(2);
+     $('months').value=[3,6,9,12].includes(x.months)?String(x.months):'custom';
+     $('customMonthsWrap').hidden=$('months').value!=='custom';$('customMonths').value=x.months;
+     render(calculate(x.expenses,x.saved,x.months,x.contribution));
+   }else{$('resetForm').click();}
+   applyPreferences();renderOperations();$('backupMessage').textContent='Копия восстановлена. Операций: '+operations.length+'.';
+ }catch{$('backupMessage').textContent='Не удалось сохранить восстановленные данные. Текущие записи проверь вручную.';}
+});
+const loadProblem=storageCheck();if(loadProblem)$('backupMessage').textContent='Внимание: '+loadProblem+' Не сбрасывай данные до их восстановления.';

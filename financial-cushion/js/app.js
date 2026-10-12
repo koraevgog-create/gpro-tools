@@ -47,7 +47,7 @@ function render(result){
   $('guidance').textContent=result.missing===0?'Цель достигнута. Держи резерв доступным и пересматривай его, если обязательные расходы изменятся.':result.eta===null?'Чтобы увидеть срок достижения цели, укажи сумму, которую можешь ежемесячно откладывать.':result.eta>60?'При таком взносе накопление займёт много времени. Попробуй пересмотреть бюджет или увеличить регулярный взнос.':'При регулярном пополнении по выбранному плану ты постепенно достигнешь цели. Резерв лучше держать отдельно от денег на повседневные покупки.';
 }
 $('calcForm').addEventListener('submit',event=>{
-  event.preventDefault();$('formError').textContent='';
+  event.preventDefault();$('formError').textContent='';if(storageCheck()){$('formError').textContent='Данные повреждены. Сначала восстанови резервную копию.';return;}
   const expenses=cents($('expenses').value),saved=cents($('saved').value),months=$('months').value==='custom'?Number($('customMonths').value):Number($('months').value),contribution=$('contribution').value===''?0:cents($('contribution').value);
   const result=calculate(expenses,saved,months,contribution);
   if(!result){$('formError').textContent='Проверь суммы: расходы должны быть больше нуля, остальные значения — неотрицательные.';return;}

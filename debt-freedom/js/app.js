@@ -80,6 +80,9 @@ function render(){
   }
 }
 function persist(next,errorId='formError'){
+  const status=checkStorage();
+  if(!status.ok){showStorageStatus(status);$(errorId).textContent='Сохранение заблокировано: проблема с сохранёнными данными. Скачай аварийную копию.';return false;}
+  if(!Array.isArray(next)||next.length>2000||!next.every(valid)||new Set(next.map(d=>d.id)).size!==next.length){$(errorId).textContent='Изменения не прошли проверку данных.';return false;}
   try{if(storageProblem)throw new Error('blocked');localStorage.setItem(KEY,JSON.stringify(next));$(errorId).textContent='';return true;}
   catch{$(errorId).textContent='Не удалось сохранить данные. Проверь хранилище браузера.';return false;}
 }
@@ -266,5 +269,77 @@ function setGuide(visible){
 $('hideGuide').addEventListener('click',()=>setGuide(false));
 $('openGuide').addEventListener('click',()=>{setGuide(true);$('quickGuide').scrollIntoView({behavior:'smooth',block:'start'});});
 setGuide(guideVisible);
+
+/* Level 7 — backup and integrity checks. Older v1 records remain readable. */
+function checkStorage(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(raw===null)return {ok:true,message:'Хранилище доступно. Долгов пока нет.'};
+    const data=JSON.parse(raw);
+    if(!Array.isArray(data)||data.length>2000||!data.every(valid)||
+       new Set(data.map(d=>d.id)).size!==data.length)
+      return {ok:false,message:'В хранилище есть повреждённые данные. Автоматическое сохранение заблокировано.'};
+    if(storageProblem)return {ok:false,message:'При загрузке обнаружена проблема. Сохрани исходные данные вручную.'};
+    return {ok:true,message:'Проверка пройдена: '+data.length+' обязательств. Для защиты от потери данных скачай JSON-копию.'};
+  }catch{
+    return {ok:false,message:'Не удалось прочитать сохранённые данные. Скачай исходные данные для восстановления вручную.'};
+  }
+}
+function showStorageStatus(status){
+  $('storageWarning').hidden=status.ok;
+  $('storageWarningText').textContent=status.ok?'':status.message;
+  $('backupStatus').textContent=status.message;
+}
+function downloadObject(data,fileName){
+  const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}));
+  const link=document.createElement('a');
+  link.href=url;link.download=fileName;document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+function backupSnapshot(){
+  return {app:'gpro-debt-freedom',version:1,exportedAt:new Date().toISOString(),debts};
+}
+function validBackup(data){
+  return data&&data.app==='gpro-debt-freedom'&&data.version===1&&
+    Array.isArray(data.debts)&&data.debts.length<=2000&&
+    data.debts.every(valid)&&new Set(data.debts.map(d=>d.id)).size===data.debts.length;
+}
+$('verifyStorage').addEventListener('click',()=>showStorageStatus(checkStorage()));
+$('downloadBackup').addEventListener('click',()=>{
+  const status=checkStorage();showStorageStatus(status);
+  if(!status.ok)return;
+  downloadObject(backupSnapshot(),'gpro-debt-freedom-backup-'+localToday()+'.json');
+  $('backupStatus').textContent='Резервная копия создана для скачивания.';
+});
+$('emergencyBackup').addEventListener('click',()=>{
+  let raw;
+  try{raw=localStorage.getItem(KEY);}catch{raw='[Не удалось прочитать хранилище]';}
+  downloadObject({app:'gpro-debt-freedom-emergency',version:1,exportedAt:new Date().toISOString(),raw,warning:'Не загружай аварийный файл через обычный импорт. Предназначен для ручного восстановления.'},
+    'gpro-debt-freedom-emergency-'+localToday()+'.json');
+});
+$('restoreBackup').addEventListener('change',async event=>{
+  const file=event.target.files?.[0];event.target.value='';
+  if(!file)return;
+  if(file.size>5*1024*1024){$('backupStatus').textContent='Файл слишком большой (максимум 5 МБ).';return;}
+  try{
+    const restored=JSON.parse(await file.text());
+    if(!validBackup(restored)){$('backupStatus').textContent='Некорректная резервная копия. Ничего не изменено.';return;}
+    if(!confirm('Заменить все долги и историю выплат данными из этого файла? Сначала сохрани текущие данные отдельной копией.'))return;
+    const old=localStorage.getItem(KEY);
+    try{localStorage.setItem(KEY,JSON.stringify(restored.debts));}
+    catch{
+      // A single-key write is atomic in conforming localStorage implementations.
+      $('backupStatus').textContent='Не удалось сохранить импорт. Текущие данные не заменены.';
+      return;
+    }
+    debts=restored.debts;storageProblem=false;resetEditor();render();
+    showStorageStatus(checkStorage());
+    $('backupStatus').textContent='Данные восстановлены: '+debts.length+' обязательств.';
+  }catch{
+    $('backupStatus').textContent='Не удалось прочитать JSON-файл. Данные не изменены.';
+  }
+});
+const initialStorageStatus=checkStorage();
+if(!initialStorageStatus.ok)showStorageStatus(initialStorageStatus);
 
 render();

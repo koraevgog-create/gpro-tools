@@ -97,7 +97,11 @@ $('debtForm').addEventListener('submit',event=>{
   if(original && starting(original)+delta<0){$('formError').textContent='Остаток нельзя уменьшить ниже общей суммы записанных выплат. Исправь выплаты через историю.';return;}
   if(original && (original.adjustments||[]).length>=5000 && delta!==0){$('formError').textContent='Достигнут лимит ручных корректировок.';return;}
   if(original&&delta!==0&&!confirm('Изменить остаток на '+rub(Math.abs(delta))+' ('+(delta>0?'увеличение':'уменьшение')+')? Это ручная корректировка, она НЕ будет записана как выплата.'))return;
-  const debt={id:original?.id||uid(),name,amount,payment,target,...(rate===undefined?{}:{rate}),...(due?{due}:{}),history:original?.history||[],initialAmount:original?starting(original)+delta:amount,adjustments:original?[...(original.adjustments||[]),...(delta?[{date:localToday(),delta}]:[])]:[]};
+  const compact=viewPrefs.mode==='simple';
+  const safeTarget=compact&&original?(original.target||0):target;
+  const safeRate=compact&&original?original.rate:rate;
+  const safeDue=compact&&original?(original.due||''):due;
+  const debt={id:original?.id||uid(),name,amount,payment,target:safeTarget,...(safeRate===undefined?{}:{rate:safeRate}),...(safeDue?{due:safeDue}:{}),history:original?.history||[],initialAmount:original?starting(original)+delta:amount,adjustments:original?[...(original.adjustments||[]),...(delta?[{date:localToday(),delta}]:[])]:[]};
   const next=editingId?debts.map(d=>d.id===editingId?debt:d):[...debts,debt];if(!persist(next))return;debts=next;resetEditor();render();$('debtName').focus();
 });
 function startEdit(id){

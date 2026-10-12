@@ -55,7 +55,7 @@ $('calcForm').addEventListener('submit',event=>{
   try{localStorage.setItem(KEY,JSON.stringify({expenses,saved,months,contribution}));}
   catch{$('formError').textContent='Расчёт готов, но браузер не сохранил значения. Проверь настройки хранилища.';}
 });
-$('resetForm').addEventListener('click',()=>{$('calcForm').reset();$('formError').textContent='';try{localStorage.removeItem(KEY);}catch{}$('target').textContent='—';$('coverage').textContent='—';$('missing').textContent='—';$('eta').textContent='—';$('progressBar').style.width='0';$('progressTrack').setAttribute('aria-valuenow','0');$('progressCaption').textContent='Заполни форму, чтобы увидеть прогресс.';$('resultStatus').textContent='Ожидает расчёта';$('guidance').textContent='Начни с необходимых ежемесячных расходов и текущих накоплений.';$('milestoneList').textContent='Сначала рассчитай финансовую подушку.';$('scenarioList').textContent='После расчёта появятся варианты накопления.';});
+$('resetForm').addEventListener('click',()=>{if(operations.length&&!confirm('Сбросить параметры и удалить всю историю операций? Это действие нельзя отменить.'))return;try{localStorage.removeItem(HISTORY_KEY);}catch{$('formError').textContent='Не удалось очистить историю операций.';return;}operations=[];renderOperations();$('calcForm').reset();$('formError').textContent='';try{localStorage.removeItem(KEY);}catch{}$('target').textContent='—';$('coverage').textContent='—';$('missing').textContent='—';$('eta').textContent='—';$('progressBar').style.width='0';$('progressTrack').setAttribute('aria-valuenow','0');$('progressCaption').textContent='Заполни форму, чтобы увидеть прогресс.';$('resultStatus').textContent='Ожидает расчёта';$('guidance').textContent='Начни с необходимых ежемесячных расходов и текущих накоплений.';$('milestoneList').textContent='Сначала рассчитай финансовую подушку.';$('scenarioList').textContent='После расчёта появятся варианты накопления.';});
 try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x&&calculate(x.expenses,x.saved,x.months,x.contribution)){for(const id of ['expenses','saved','contribution'])$(id).value=(x[id]/100).toFixed(2);$('months').value=[3,6,9,12].includes(x.months)?String(x.months):'custom';$('customMonthsWrap').hidden=$('months').value!=='custom';$('customMonths').value=x.months;render(calculate(x.expenses,x.saved,x.months,x.contribution));}}catch{}
 
 $('months').addEventListener('change',()=>{$('customMonthsWrap').hidden=$('months').value!=='custom';});
@@ -73,7 +73,7 @@ function renderOperations(){
       if(saved===null||next<0||!Number.isSafeInteger(next)){$('operationError').textContent='Сначала проверь текущий остаток: отмена приведёт к некорректной сумме.';return;}
       if(!confirm('Отменить операцию на '+rub(o.amount)+'?'))return;
       const left=operations.filter(x=>x.id!==o.id);
-      try{localStorage.setItem(HISTORY_KEY,JSON.stringify(left));const payload=JSON.parse(localStorage.getItem(KEY)||'null');if(payload){payload.saved=next;localStorage.setItem(KEY,JSON.stringify(payload));}}
+      try{const previous=localStorage.getItem(KEY);const payload=JSON.parse(previous||'null');if(!payload)throw Error('no saved calculation');payload.saved=next;localStorage.setItem(KEY,JSON.stringify(payload));try{localStorage.setItem(HISTORY_KEY,JSON.stringify(left));}catch(error){if(previous!==null)localStorage.setItem(KEY,previous);throw error;}}
       catch{$('operationError').textContent='Не удалось сохранить изменение. Проверь хранилище.';return;}
       operations=left;$('saved').value=(next/100).toFixed(2);refreshResult();renderOperations();
     });
@@ -98,7 +98,7 @@ $('operationForm').addEventListener('submit',event=>{
   if(!result){$('operationError').textContent='Сначала заполни корректные параметры расчёта.';return;}
   const entry={id:globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2),type,amount,date,note};
   const nextHistory=[...operations,entry];
-  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(nextHistory));localStorage.setItem(KEY,JSON.stringify({expenses,saved:next,months,contribution}));}
+  try{const previous=localStorage.getItem(KEY);localStorage.setItem(KEY,JSON.stringify({expenses,saved:next,months,contribution}));try{localStorage.setItem(HISTORY_KEY,JSON.stringify(nextHistory));}catch(error){if(previous===null)localStorage.removeItem(KEY);else localStorage.setItem(KEY,previous);throw error;}}
   catch{$('operationError').textContent='Не удалось сохранить операцию. Проверь хранилище.';return;}
   operations=nextHistory;$('saved').value=(next/100).toFixed(2);$('operationAmount').value='';$('operationNote').value='';render(result);renderOperations();
 });

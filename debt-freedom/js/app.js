@@ -20,7 +20,7 @@ let debts=[];
 let storageProblem=false;
 try{
   const raw=localStorage.getItem(KEY);
-  if(raw!==null){const data=JSON.parse(raw);if(!Array.isArray(data)||data.length>2000||!data.every(valid)||new Set(data.map(d=>d.id)).size!==data.length)throw new Error('invalid');debts=data;}
+  if(raw!==null){const data=JSON.parse(raw);if(!Array.isArray(data)||data.length>2000||!data.every(valid)||new Set(data.map(d=>d.id)).size!==data.length||!Number.isSafeInteger(data.reduce((sum,d)=>sum+d.amount,0)))throw new Error('invalid');debts=data;}
 }catch{storageProblem=true;}
 const el=(tag,content,className='')=>{const node=document.createElement(tag);node.textContent=content;if(className)node.className=className;return node;};
 function render(){
@@ -280,7 +280,7 @@ function checkStorage(){
     if(raw===null)return storageProblem?{ok:false,message:'При загрузке возникла проблема с хранилищем. Сохранение заблокировано.'}:{ok:true,message:'Хранилище доступно. Долгов пока нет.'};
     const data=JSON.parse(raw);
     if(!Array.isArray(data)||data.length>2000||!data.every(valid)||
-       new Set(data.map(d=>d.id)).size!==data.length)
+       new Set(data.map(d=>d.id)).size!==data.length||!Number.isSafeInteger(data.reduce((sum,d)=>sum+d.amount,0)))
       return {ok:false,message:'В хранилище есть повреждённые данные. Автоматическое сохранение заблокировано.'};
     if(storageProblem)return {ok:false,message:'При загрузке обнаружена проблема. Сохрани исходные данные вручную.'};
     return {ok:true,message:'Проверка пройдена: '+data.length+' обязательств. Для защиты от потери данных скачай JSON-копию.'};

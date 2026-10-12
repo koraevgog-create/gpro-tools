@@ -1,10 +1,13 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const KEY='gpro-emergency-fund-v1';
+const HISTORY_KEY='gpro-emergency-fund-history-v1';
+let operations=[];
+try{const x=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');if(Array.isArray(x)&&x.length<=5000&&x.every(o=>o&&typeof o.id==='string'&&['deposit','withdrawal'].includes(o.type)&&Number.isSafeInteger(o.amount)&&o.amount>0&&/^\d{4}-\d{2}-\d{2}$/.test(o.date)&&typeof o.note==='string'&&o.note.length<=80))operations=x;}catch{}
 const rub=c=>(c/100).toLocaleString('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:2});
 const cents=value=>{if(value===''||!Number.isFinite(Number(value))||Number(value)<0||Number(value)>1e12)return null;let x=Math.round(Number(value)*100);return Number.isSafeInteger(x)?x:null;};
 function calculate(expenses,saved,months,contribution){
-  if(!Number.isSafeInteger(expenses)||expenses<=0||!Number.isSafeInteger(saved)||saved<0||![3,6,9,12].includes(months)||!Number.isSafeInteger(contribution)||contribution<0)return null;
+  if(!Number.isSafeInteger(expenses)||expenses<=0||!Number.isSafeInteger(saved)||saved<0||(!Number.isInteger(months)||months<1||months>36)||!Number.isSafeInteger(contribution)||contribution<0)return null;
   const target=expenses*months;if(!Number.isSafeInteger(target))return null;
   const missing=Math.max(0,target-saved),progress=Math.min(100,100*saved/target);
   const eta=missing===0?0:contribution===0?null:Math.ceil(missing/contribution);
@@ -45,7 +48,7 @@ function render(result){
 }
 $('calcForm').addEventListener('submit',event=>{
   event.preventDefault();$('formError').textContent='';
-  const expenses=cents($('expenses').value),saved=cents($('saved').value),months=Number($('months').value),contribution=$('contribution').value===''?0:cents($('contribution').value);
+  const expenses=cents($('expenses').value),saved=cents($('saved').value),months=$('months').value==='custom'?Number($('customMonths').value):Number($('months').value),contribution=$('contribution').value===''?0:cents($('contribution').value);
   const result=calculate(expenses,saved,months,contribution);
   if(!result){$('formError').textContent='Проверь суммы: расходы должны быть больше нуля, остальные значения — неотрицательные.';return;}
   render(result);
@@ -53,4 +56,50 @@ $('calcForm').addEventListener('submit',event=>{
   catch{$('formError').textContent='Расчёт готов, но браузер не сохранил значения. Проверь настройки хранилища.';}
 });
 $('resetForm').addEventListener('click',()=>{$('calcForm').reset();$('formError').textContent='';try{localStorage.removeItem(KEY);}catch{}$('target').textContent='—';$('coverage').textContent='—';$('missing').textContent='—';$('eta').textContent='—';$('progressBar').style.width='0';$('progressTrack').setAttribute('aria-valuenow','0');$('progressCaption').textContent='Заполни форму, чтобы увидеть прогресс.';$('resultStatus').textContent='Ожидает расчёта';$('guidance').textContent='Начни с необходимых ежемесячных расходов и текущих накоплений.';$('milestoneList').textContent='Сначала рассчитай финансовую подушку.';$('scenarioList').textContent='После расчёта появятся варианты накопления.';});
-try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x&&calculate(x.expenses,x.saved,x.months,x.contribution)){for(const id of ['expenses','saved','contribution'])$(id).value=(x[id]/100).toFixed(2);$('months').value=String(x.months);render(calculate(x.expenses,x.saved,x.months,x.contribution));}}catch{}
+try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x&&calculate(x.expenses,x.saved,x.months,x.contribution)){for(const id of ['expenses','saved','contribution'])$(id).value=(x[id]/100).toFixed(2);$('months').value=[3,6,9,12].includes(x.months)?String(x.months):'custom';$('customMonthsWrap').hidden=$('months').value!=='custom';$('customMonths').value=x.months;render(calculate(x.expenses,x.saved,x.months,x.contribution));}}catch{}
+
+$('months').addEventListener('change',()=>{$('customMonthsWrap').hidden=$('months').value!=='custom';});
+const today=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);};
+$('operationDate').value=today();
+function renderOperations(){
+  const root=$('operationHistory');root.replaceChildren();
+  if(!operations.length){const p=document.createElement('p');p.className='muted';p.textContent='Операций пока нет.';root.append(p);return;}
+  for(const o of [...operations].sort((a,b)=>b.date.localeCompare(a.date))){
+    const row=document.createElement('div');row.className='operation-row';
+    const desc=document.createElement('span');desc.textContent=o.date+' · '+(o.type==='deposit'?'+':'−')+rub(o.amount)+(o.note?' · '+o.note:'');
+    const undo=document.createElement('button');undo.className='button secondary';undo.type='button';undo.textContent='Отменить';
+    undo.addEventListener('click',()=>{
+      const saved=cents($('saved').value),next=saved+(o.type==='deposit'?-o.amount:o.amount);
+      if(saved===null||next<0||!Number.isSafeInteger(next)){$('operationError').textContent='Сначала проверь текущий остаток: отмена приведёт к некорректной сумме.';return;}
+      if(!confirm('Отменить операцию на '+rub(o.amount)+'?'))return;
+      const left=operations.filter(x=>x.id!==o.id);
+      try{localStorage.setItem(HISTORY_KEY,JSON.stringify(left));const payload=JSON.parse(localStorage.getItem(KEY)||'null');if(payload){payload.saved=next;localStorage.setItem(KEY,JSON.stringify(payload));}}
+      catch{$('operationError').textContent='Не удалось сохранить изменение. Проверь хранилище.';return;}
+      operations=left;$('saved').value=(next/100).toFixed(2);refreshResult();renderOperations();
+    });
+    row.append(desc,undo);root.append(row);
+  }
+}
+function refreshResult(){
+  const expenses=cents($('expenses').value),saved=cents($('saved').value);
+  const months=$('months').value==='custom'?Number($('customMonths').value):Number($('months').value);
+  const contribution=$('contribution').value===''?0:cents($('contribution').value);
+  const result=calculate(expenses,saved,months,contribution);
+  if(result)render(result);
+}
+$('operationForm').addEventListener('submit',event=>{
+  event.preventDefault();$('operationError').textContent='';
+  const saved=cents($('saved').value),amount=cents($('operationAmount').value),type=$('operationType').value,date=$('operationDate').value,note=$('operationNote').value.trim();
+  if(saved===null||amount===null||amount<=0||!['deposit','withdrawal'].includes(type)||!/^\d{4}-\d{2}-\d{2}$/.test(date)||operations.length>=5000){$('operationError').textContent='Проверь сумму, остаток, дату и заполнение калькулятора.';return;}
+  const next=type==='deposit'?saved+amount:saved-amount;
+  if(next<0||!Number.isSafeInteger(next)||next>1e14){$('operationError').textContent='Нельзя снять больше остатка или превысить допустимую сумму.';return;}
+  const expenses=cents($('expenses').value),months=$('months').value==='custom'?Number($('customMonths').value):Number($('months').value),contribution=$('contribution').value===''?0:cents($('contribution').value);
+  const result=calculate(expenses,next,months,contribution);
+  if(!result){$('operationError').textContent='Сначала заполни корректные параметры расчёта.';return;}
+  const entry={id:globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2),type,amount,date,note};
+  const nextHistory=[...operations,entry];
+  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(nextHistory));localStorage.setItem(KEY,JSON.stringify({expenses,saved:next,months,contribution}));}
+  catch{$('operationError').textContent='Не удалось сохранить операцию. Проверь хранилище.';return;}
+  operations=nextHistory;$('saved').value=(next/100).toFixed(2);$('operationAmount').value='';$('operationNote').value='';render(result);renderOperations();
+});
+renderOperations();

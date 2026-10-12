@@ -31,3 +31,16 @@ body{background:radial-gradient(ellipse at 65% -10%,#30513d,transparent 55%),#0c
 @media(hover:hover){.plan-row:hover{border-color:#a8b876;transform:translateY(-2px)}.button:hover{filter:brightness(1.07)}}
 @media(max-width:480px){.hero-decoration{right:-9px;top:35px;font-size:85px}.metrics{gap:9px}.metrics article{padding:13px;min-height:105px}.metrics strong{font-size:clamp(17px,5vw,22px)}.hero h1{letter-spacing:-1.4px}}
 @media(prefers-reduced-motion:reduce){.plan-row{transition:none}}
+
+/* Level 6: saved personal presentation choices */
+.preferences{margin-top:17px}
+.preference-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:17px 0}
+.privacy-toggle{flex-direction:row;align-items:center;gap:12px;margin:14px 0;font-size:14px}
+.privacy-toggle input{width:18px;height:18px;min-width:18px;accent-color:#c9dca5}
+.mask-amounts .metrics strong,.mask-amounts .plan-row span,.mask-amounts .operation-row span,.mask-amounts #progressCaption{filter:blur(9px);user-select:none}
+body[data-accent="gold"] .button:not(.secondary){background:#f0cf8e;color:#352d19}
+body[data-accent="gold"] .hero h1 em,body[data-accent="gold"] .eyebrow{color:#f0d49a}
+body[data-accent="gold"] .meter span{background:linear-gradient(90deg,#baa66d,#f0d49a)}
+body[data-accent="gold"] .metrics article:before{background:#e9c781}
+body[data-accent="gold"] .plan-row strong{color:#ffe3ab}
+@media(max-width:560px){.preference-grid{grid-template-columns:1fr}}

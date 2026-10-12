@@ -63,6 +63,7 @@ function render(){
     if(debt.amount>0){
       const payNow=el('button','Внести выплату','button pay-now');
       payNow.type='button';payNow.addEventListener('click',()=>{
+        $('paymentPanel').open=true;
         $('paymentDebt').value=debt.id;$('paymentMessage').textContent='Выбран долг «'+debt.name+'».';
         $('paymentPanel').scrollIntoView({behavior:'smooth',block:'start'});$('paymentAmount').focus({preventScroll:true});
       });controls.append(payNow);
@@ -97,11 +98,7 @@ $('debtForm').addEventListener('submit',event=>{
   if(original && starting(original)+delta<0){$('formError').textContent='Остаток нельзя уменьшить ниже общей суммы записанных выплат. Исправь выплаты через историю.';return;}
   if(original && (original.adjustments||[]).length>=5000 && delta!==0){$('formError').textContent='Достигнут лимит ручных корректировок.';return;}
   if(original&&delta!==0&&!confirm('Изменить остаток на '+rub(Math.abs(delta))+' ('+(delta>0?'увеличение':'уменьшение')+')? Это ручная корректировка, она НЕ будет записана как выплата.'))return;
-  const compact=viewPrefs.mode==='simple';
-  const safeTarget=compact&&original?(original.target||0):target;
-  const safeRate=compact&&original?original.rate:rate;
-  const safeDue=compact&&original?(original.due||''):due;
-  const debt={id:original?.id||uid(),name,amount,payment,target:safeTarget,...(safeRate===undefined?{}:{rate:safeRate}),...(safeDue?{due:safeDue}:{}),history:original?.history||[],initialAmount:original?starting(original)+delta:amount,adjustments:original?[...(original.adjustments||[]),...(delta?[{date:localToday(),delta}]:[])]:[]};
+  const debt={id:original?.id||uid(),name,amount,payment,target,...(rate===undefined?{}:{rate}),...(due?{due}:{}),history:original?.history||[],initialAmount:original?starting(original)+delta:amount,adjustments:original?[...(original.adjustments||[]),...(delta?[{date:localToday(),delta}]:[])]:[]};
   const next=editingId?debts.map(d=>d.id===editingId?debt:d):[...debts,debt];if(!persist(next))return;debts=next;resetEditor();render();$('debtName').focus();
 });
 function startEdit(id){
@@ -227,27 +224,22 @@ for(const id of ['debtSearch','debtFilter','debtSort'])$(id).addEventListener(id
 $('historyDebt').addEventListener('change',()=>{visiblePayments=50;renderPayments();});
 $('paymentForm').addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();$('paymentForm').requestSubmit();}});
 
-const VIEW_KEY='gpro-debt-freedom-view-v1';
-let viewPrefs={mode:'simple',guide:true};
-try{const saved=JSON.parse(localStorage.getItem(VIEW_KEY)||'null');if(saved&&['simple','advanced'].includes(saved.mode)&&typeof saved.guide==='boolean')viewPrefs=saved;}catch{}
-function applyView(){
-  const detailed=viewPrefs.mode==='advanced';
-  document.body.classList.toggle('simple-view',!detailed);
-  $('simpleView').setAttribute('aria-pressed',String(!detailed));
-  $('advancedView').setAttribute('aria-pressed',String(detailed));
-  $('simpleView').classList.toggle('secondary',detailed);
-  $('advancedView').classList.toggle('secondary',!detailed);
-  $('quickGuide').hidden=!viewPrefs.guide;
+const GUIDE_KEY='gpro-debt-freedom-guide-v1';
+let guideVisible=true;
+try{
+  const savedGuide=localStorage.getItem(GUIDE_KEY);
+  if(savedGuide!==null)guideVisible=savedGuide!=='false';
+  else {
+    const legacy=JSON.parse(localStorage.getItem('gpro-debt-freedom-view-v1')||'null');
+    if(legacy&&typeof legacy.guide==='boolean')guideVisible=legacy.guide;
+  }
+}catch{}
+function setGuide(visible){
+  guideVisible=visible;
+  $('quickGuide').hidden=!visible;
+  try{localStorage.setItem(GUIDE_KEY,String(visible));}catch{}
 }
-function updateView(next){
-  viewPrefs={...viewPrefs,...next};
-  try{localStorage.setItem(VIEW_KEY,JSON.stringify(viewPrefs));}catch{}
-  applyView();
-}
-$('simpleView').addEventListener('click',()=>updateView({mode:'simple'}));
-$('advancedView').addEventListener('click',()=>updateView({mode:'advanced'}));
-$('hideGuide').addEventListener('click',()=>updateView({guide:false}));
-$('openGuide').addEventListener('click',()=>{updateView({guide:true});$('quickGuide').scrollIntoView({behavior:'smooth',block:'start'});});
-applyView();
+$('hideGuide').addEventListener('click',()=>setGuide(false));
+setGuide(guideVisible);
 
 render();

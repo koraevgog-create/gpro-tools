@@ -5,11 +5,11 @@ const rub=cents=>(cents/100).toLocaleString('ru-RU',{style:'currency',currency:'
 const toCents=value=>{
   if(value===''||!Number.isFinite(Number(value))||Number(value)<0||Number(value)>1e12)return null;
   const n=Math.round(Number(value)*100);
-  return Number.isSafeInteger(n)?n:null;
+  return Number.isSafeInteger(n)&&n<=1e14?n:null;
 };
 function valid(item){return item&&typeof item.id==='string'&&item.id.length>0&&item.id.length<=120&&typeof item.name==='string'&&item.name.trim().length>0&&item.name.length<=80&&Number.isSafeInteger(item.amount)&&item.amount>=0&&item.amount<=1e14&&(item.initialAmount===undefined||(Number.isSafeInteger(item.initialAmount)&&item.initialAmount>=0&&item.initialAmount<=1e14))&&(item.adjustments===undefined||(Array.isArray(item.adjustments)&&item.adjustments.length<=5000&&item.adjustments.every(a=>a&&Number.isSafeInteger(a.delta)&&Math.abs(a.delta)<=1e14&&validDate(a.date))))&&Number.isSafeInteger(item.payment)&&item.payment>=0&&item.payment<=1e14&&(item.target===undefined||(Number.isSafeInteger(item.target)&&item.target>=0&&item.target<=1e14))&&(item.rate===undefined||(typeof item.rate==='number'&&Number.isFinite(item.rate)&&item.rate>=0&&item.rate<=100))&&(item.due===undefined||item.due===''||validDate(item.due))&&(item.history===undefined||(Array.isArray(item.history)&&item.history.length<=5000&&item.history.every(p=>p&&typeof p.id==='string'&&p.id.length>0&&Number.isSafeInteger(p.cents)&&p.cents>0&&p.cents<=1e14&&validDate(p.date))));}
 function validDate(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const d=new Date(s+'T12:00:00');return !Number.isNaN(+d)&&d.toISOString().slice(0,10)===s;}
-function estimate(amount,payment,rate){if(payment<=0)return null;let remaining=amount;const interest=rate/1200;for(let months=1;months<=600;months++){remaining=Math.ceil(remaining*(1+interest)-payment);if(remaining<=0)return months;}return null;}
+function estimate(amount,payment,rate){if(payment<=0)return null;let remaining=amount;const interest=rate/1200;for(let months=1;months<=600;months++){remaining=Math.ceil(remaining*(1+interest)-payment);if(!Number.isSafeInteger(remaining))return null;if(remaining<=0)return months;}return null;}
 const monthsLabel=n=>n===1?'1 месяц':n+' мес.';
 const paid=d=>(d.history||[]).reduce((sum,p)=>sum+p.cents,0);
 const starting=d=>d.initialAmount===undefined?d.amount+paid(d):d.initialAmount;
@@ -82,7 +82,7 @@ function render(){
 function persist(next,errorId='formError'){
   const status=checkStorage();
   if(!status.ok){showStorageStatus(status);$(errorId).textContent='Сохранение заблокировано: проблема с сохранёнными данными. Скачай аварийную копию.';return false;}
-  if(!Array.isArray(next)||next.length>2000||!next.every(valid)||new Set(next.map(d=>d.id)).size!==next.length){$(errorId).textContent='Изменения не прошли проверку данных.';return false;}
+  if(!Array.isArray(next)||next.length>2000||!next.every(valid)||new Set(next.map(d=>d.id)).size!==next.length||!Number.isSafeInteger(next.reduce((sum,d)=>sum+d.amount,0))){$(errorId).textContent='Изменения не прошли проверку данных.';return false;}
   try{if(storageProblem)throw new Error('blocked');localStorage.setItem(KEY,JSON.stringify(next));$(errorId).textContent='';return true;}
   catch{$(errorId).textContent='Не удалось сохранить данные. Проверь хранилище браузера.';return false;}
 }
@@ -200,6 +200,7 @@ function simulate(strategy,extra){
       if(!Number.isSafeInteger(interest)||interestTotal+interest>Number.MAX_SAFE_INTEGER)
         return {months:null,interest:interestTotal,unknown,order,invalid:true};
       interestTotal+=interest;d.remaining+=interest;
+      if(!Number.isSafeInteger(d.remaining))return {months:null,interest:interestTotal,unknown,order,invalid:true};
     }
     let pool=totalMonthly;
     // First meet contractual minimums for every open debt.
@@ -304,7 +305,8 @@ function backupSnapshot(){
 function validBackup(data){
   return data&&data.app==='gpro-debt-freedom'&&data.version===1&&
     Array.isArray(data.debts)&&data.debts.length<=2000&&
-    data.debts.every(valid)&&new Set(data.debts.map(d=>d.id)).size===data.debts.length;
+    data.debts.every(valid)&&new Set(data.debts.map(d=>d.id)).size===data.debts.length&&
+    Number.isSafeInteger(data.debts.reduce((sum,d)=>sum+d.amount,0));
 }
 $('verifyStorage').addEventListener('click',()=>showStorageStatus(checkStorage()));
 $('downloadBackup').addEventListener('click',()=>{

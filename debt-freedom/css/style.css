@@ -81,3 +81,18 @@ body{background:radial-gradient(ellipse 850px 500px at 70% -12%,#28486d 0%,trans
 @media(max-width:760px){.hero{margin:23px 0 21px;padding:26px 21px}.summary article{min-height:98px}.hero h1{letter-spacing:-1.6px}}
 @media(max-width:430px){.hero{padding:22px 17px}.hero h1{font-size:35px}.hero .notice{font-size:12px}.summary article strong{font-size:clamp(18px,5vw,24px)}.item-actions{gap:7px}.item-actions .button{flex:1}}
 @media(prefers-reduced-motion:reduce){.button,.debt-item{transition:none}}
+
+/* Level 6: simplified onboarding and personalized density */
+.getting-started{margin:18px 0;background:linear-gradient(130deg,#17384a,#12253e);border-color:#4b827e}
+.getting-started ol{padding-left:24px;display:grid;gap:12px;margin:20px 0;color:#cfe3ec;line-height:1.6}
+.getting-started li::marker{font-weight:900;color:#84dfcd}
+.getting-started strong{color:#fff}
+.getting-started .heading{flex-wrap:wrap}
+.getting-started[hidden]{display:none}
+.view-switch{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:12px 0 16px;font-size:13px;color:#b8cde3}
+.view-buttons{display:flex;flex-wrap:wrap;gap:8px}
+.view-buttons .button{padding:9px 13px}
+.simple-view .advanced-section,.simple-view #advancedDebtFields{display:none!important}
+.simple-view .debt-tools{display:none}
+.simple-view .roadmap{display:none}
+@media(max-width:480px){.view-buttons{width:100%}.view-buttons .button{flex:1}.getting-started ol{font-size:13px}}

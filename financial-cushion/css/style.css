@@ -44,3 +44,5 @@ body[data-accent="gold"] .meter span{background:linear-gradient(90deg,#baa66d,#f
 body[data-accent="gold"] .metrics article:before{background:#e9c781}
 body[data-accent="gold"] .plan-row strong{color:#ffe3ab}
 @media(max-width:560px){.preference-grid{grid-template-columns:1fr}}
+
+.backup{margin-top:17px}.backup .actions{margin:18px 0;align-items:stretch}.import-label{display:inline-flex;align-items:center;justify-content:center;background:#304638;color:#e9f0d8;padding:12px 16px;border-radius:11px;font-weight:700;cursor:pointer}.import-label input{width:1px;height:1px;opacity:0;position:absolute}.import-label:focus-within{outline:2px solid #eadba3;outline-offset:3px}@media(max-width:500px){.backup .actions>*{width:100%}}

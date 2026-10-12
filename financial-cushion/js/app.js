@@ -90,7 +90,7 @@ function refreshResult(){
   if(result)render(result);
 }
 $('operationForm').addEventListener('submit',event=>{
-  event.preventDefault();$('operationError').textContent='';
+  event.preventDefault();$('operationError').textContent='';if(storageCheck()){$('operationError').textContent='Сначала восстанови данные из копии.';return;}
   const saved=cents($('saved').value),amount=cents($('operationAmount').value),type=$('operationType').value,date=$('operationDate').value,note=$('operationNote').value.trim();
   if(saved===null||amount===null||amount<=0||!['deposit','withdrawal'].includes(type)||!/^\d{4}-\d{2}-\d{2}$/.test(date)||operations.length>=5000){$('operationError').textContent='Проверь сумму, остаток, дату и заполнение калькулятора.';return;}
   const next=type==='deposit'?saved+amount:saved-amount;

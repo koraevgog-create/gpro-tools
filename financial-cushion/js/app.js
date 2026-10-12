@@ -70,7 +70,7 @@ function renderOperations(){
     const row=document.createElement('div');row.className='operation-row';
     const desc=document.createElement('span');desc.textContent=o.date+' · '+(o.type==='deposit'?'+':'−')+rub(o.amount)+(o.note?' · '+o.note:'');
     const undo=document.createElement('button');undo.className='button secondary';undo.type='button';undo.textContent='Отменить';
-    undo.addEventListener('click',()=>{
+    undo.addEventListener('click',()=>{if(storageCheck()){$('operationError').textContent='Сначала восстанови данные из копии.';return;}
       const saved=cents($('saved').value),next=saved+(o.type==='deposit'?-o.amount:o.amount);
       if(saved===null||next<0||!Number.isSafeInteger(next)){$('operationError').textContent='Сначала проверь текущий остаток: отмена приведёт к некорректной сумме.';return;}
       if(!confirm('Отменить операцию на '+rub(o.amount)+'?'))return;

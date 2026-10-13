@@ -1,0 +1,23 @@
+'use strict';
+const $=id=>document.getElementById(id),KEY='gpro-money-leaks-v1';
+const rub=c=>(c/100).toLocaleString('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:2});
+const frequency={day:365,week:52,month:12,year:1},names={day:'ежедневно',week:'раз в неделю',month:'ежемесячно',year:'раз в год'};
+const categories={food:'Еда и напитки',subscription:'Подписки',transport:'Транспорт',shopping:'Покупки',entertainment:'Развлечения',other:'Другое'};
+function valid(o){return o&&typeof o.id==='string'&&o.id.length>0&&typeof o.name==='string'&&o.name.trim().length>0&&o.name.length<=70&&Number.isSafeInteger(o.amount)&&o.amount>0&&o.amount<=1e11&&Object.hasOwn(frequency,o.frequency)&&Object.hasOwn(categories,o.category);}
+const cents=s=>{if(s===''||!Number.isFinite(Number(s))||Number(s)<=0||Number(s)>1e9)return null;const n=Math.round(Number(s)*100);return Number.isSafeInteger(n)&&n>0?n:null;};
+let items=[];try{const value=JSON.parse(localStorage.getItem(KEY)||'[]');if(Array.isArray(value)&&value.length<=1000&&value.every(valid)&&new Set(value.map(x=>x.id)).size===value.length)items=value;else throw Error('invalid');}catch{$('formError').textContent='Сохранённые данные не удалось загрузить. Чтобы не потерять их, изменения заблокированы.';}
+let storageIssue=Boolean($('formError').textContent),cut=10;
+function persist(next){if(storageIssue){$('formError').textContent='Сохранение заблокировано: проверь сохранённые данные.';return false;}try{localStorage.setItem(KEY,JSON.stringify(next));return true;}catch{$('formError').textContent='Браузер не смог сохранить изменения.';return false;}}
+function totals(){return items.reduce((sum,item)=>sum+item.amount*frequency[item.frequency],0);}
+function render(){const year=totals();$('yearlyTotal').textContent=rub(year);$('monthlyTotal').textContent=rub(Math.round(year/12));$('expenseCount').textContent=items.length;
+const first=[...items].sort((a,b)=>b.amount*frequency[b.frequency]-a.amount*frequency[a.frequency])[0];$('insight').textContent=first?'Больше всего в этом списке за год уходит на «'+first.name+'»: '+rub(first.amount*frequency[first.frequency])+'. Подумай, насколько эта трата тебе полезна.':'Добавь хотя бы одну трату, чтобы увидеть её реальную стоимость.';
+$('savedYear').textContent=rub(Math.round(year*cut/100));$('savedFive').textContent=rub(Math.round(year*cut/100)*5);
+const root=$('expenseList');root.replaceChildren();$('clearItems').hidden=!items.length;
+if(!items.length){const p=document.createElement('p');p.className='muted';p.textContent='Список пока пуст.';root.append(p);return;}
+for(const item of [...items].sort((a,b)=>b.amount*frequency[b.frequency]-a.amount*frequency[a.frequency])){const article=document.createElement('article');article.className='item';const info=document.createElement('div'),strong=document.createElement('strong'),p=document.createElement('p');strong.textContent=item.name;p.textContent=categories[item.category]+' · '+rub(item.amount)+' '+names[item.frequency]+' · '+rub(item.amount*frequency[item.frequency])+'/год';info.append(strong,p);const remove=document.createElement('button');remove.type='button';remove.className='button secondary small';remove.textContent='Удалить';remove.addEventListener('click',()=>{const next=items.filter(x=>x.id!==item.id);if(persist(next)){items=next;render();}});article.append(info,remove);root.append(article);}
+}
+$('expenseForm').addEventListener('submit',event=>{event.preventDefault();$('formError').textContent='';const name=$('itemName').value.trim(),amount=cents($('itemAmount').value),frequencyValue=$('itemFrequency').value,category=$('itemCategory').value;if(!name||name.length>70||amount===null||!Object.hasOwn(frequency,frequencyValue)||!Object.hasOwn(categories,category)||items.length>=1000){$('formError').textContent='Проверь название, сумму и частоту покупки.';return;}const item={id:globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2),name,amount,frequency:frequencyValue,category};const next=[...items,item];if(!persist(next))return;items=next;$('itemName').value='';$('itemAmount').value='';render();$('itemName').focus();});
+$('clearItems').addEventListener('click',()=>{if(confirm('Очистить весь список расходов?')){if(persist([])){items=[];render();}}});
+for(const button of document.querySelectorAll('[data-cut]'))button.addEventListener('click',()=>{cut=Number(button.dataset.cut);for(const b of document.querySelectorAll('[data-cut]')){b.classList.toggle('selected',b===button);b.setAttribute('aria-pressed',String(b===button));}render();});
+for(const b of document.querySelectorAll('[data-cut]'))b.setAttribute('aria-pressed',String(Number(b.dataset.cut)===cut));
+render();

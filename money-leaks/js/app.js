@@ -82,9 +82,11 @@ $('checkData').addEventListener('click',()=>{$('backupStatus').textContent=check
 $('exportBackup').addEventListener('click',()=>{
  const issue=checkStored();if(issue){$('backupStatus').textContent=issue+' Сначала сохрани исходные данные отдельно.';return;}
  const payload={app:'gpro-money-leaks',version:1,exportedAt:new Date().toISOString(),items,preferences:preferenceSnapshot()};
+ try{
  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='gpro-money-leaks-'+new Date().toISOString().slice(0,10)+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
  $('backupStatus').textContent='Копия подготовлена к скачиванию.';
+ }catch{$('backupStatus').textContent='Не удалось начать скачивание. Проверь разрешения браузера.';}
 });
 $('importBackup').addEventListener('change',async event=>{
  const file=event.target.files?.[0];event.target.value='';if(!file)return;
@@ -92,12 +94,18 @@ $('importBackup').addEventListener('change',async event=>{
  let data;try{data=JSON.parse(await file.text());}catch{$('backupStatus').textContent='Не удалось прочитать JSON-файл.';return;}
  if(!validBackup(data)){$('backupStatus').textContent='Файл не подходит: формат или записи некорректны. Данные не изменены.';return;}
  if(!confirm('Заменить '+items.length+' текущих расходов и настройки данными из файла ('+data.items.length+' записей)? Это действие нельзя отменить без отдельной копии.'))return;
- const previous=[];
+ const keys=[KEY,SETTINGS_KEY], previous=[];
  try{
-  for(const key of [KEY,SETTINGS_KEY])previous.push(localStorage.getItem(key));
-  localStorage.setItem(KEY,JSON.stringify(data.items));
-  try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(data.preferences));}catch(e){if(previous[0]===null)localStorage.removeItem(KEY);else localStorage.setItem(KEY,previous[0]);throw e;}
- }catch{$('backupStatus').textContent='Не удалось сохранить копию в браузере. Проверь настройки хранилища.';return;}
+  for(const key of keys)previous.push(localStorage.getItem(key));
+  const replacement=[JSON.stringify(data.items),JSON.stringify(data.preferences)];
+  try{
+   for(let i=0;i<keys.length;i++)localStorage.setItem(keys[i],replacement[i]);
+  }catch(e){
+   let rollbackOk=true;
+   for(let i=0;i<keys.length;i++){try{if(previous[i]===null)localStorage.removeItem(keys[i]);else localStorage.setItem(keys[i],previous[i]);}catch{rollbackOk=false;}}
+   throw Error(rollbackOk?'storage failure':'rollback failure');
+  }
+ }catch(e){$('backupStatus').textContent=e.message==='rollback failure'?'Не удалось полностью откатить изменения: не закрывай страницу, проверь данные.':'Не удалось сохранить копию в браузере. Прежние данные не изменены.';return;}
  items=data.items;storageIssue=false;sortPreference=data.preferences.sort;cut=data.preferences.cut;
  $('sortPreference').value=sortPreference;$('customCut').value=cut;$('cutCategory').value=data.preferences.category;$('listCategory').value=data.preferences.listCategory;
  for(const b of document.querySelectorAll('[data-cut]')){const checked=Number(b.dataset.cut)===cut;b.classList.toggle('selected',checked);b.setAttribute('aria-pressed',String(checked));}

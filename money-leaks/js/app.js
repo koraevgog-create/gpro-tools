@@ -3,8 +3,8 @@ const $=id=>document.getElementById(id),KEY='gpro-money-leaks-v1';
 const rub=c=>(c/100).toLocaleString('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:2});
 const frequency={day:365,week:52,month:12,year:1},names={day:'ежедневно',week:'раз в неделю',month:'ежемесячно',year:'раз в год'};
 const categories={food:'Еда и напитки',subscription:'Подписки',transport:'Транспорт',shopping:'Покупки',entertainment:'Развлечения',other:'Другое'};
-function valid(o){return o&&typeof o.id==='string'&&o.id.length>0&&typeof o.name==='string'&&o.name.trim().length>0&&o.name.length<=70&&Number.isSafeInteger(o.amount)&&o.amount>0&&o.amount<=1e11&&Object.hasOwn(frequency,o.frequency)&&Object.hasOwn(categories,o.category);}
-const cents=s=>{if(s===''||!Number.isFinite(Number(s))||Number(s)<=0||Number(s)>1e9)return null;const n=Math.round(Number(s)*100);return Number.isSafeInteger(n)&&n>0?n:null;};
+function valid(o){return o&&typeof o.id==='string'&&o.id.length>0&&typeof o.name==='string'&&o.name.trim().length>0&&o.name.length<=70&&Number.isSafeInteger(o.amount)&&o.amount>0&&o.amount<=1e9&&Object.hasOwn(frequency,o.frequency)&&Object.hasOwn(categories,o.category);}
+const cents=s=>{if(s===''||!Number.isFinite(Number(s))||Number(s)<=0||Number(s)>1e7)return null;const n=Math.round(Number(s)*100);return Number.isSafeInteger(n)&&n>0&&n<=1e9?n:null;};
 let items=[];try{const value=JSON.parse(localStorage.getItem(KEY)||'[]');if(Array.isArray(value)&&value.length<=1000&&value.every(valid)&&new Set(value.map(x=>x.id)).size===value.length)items=value;else throw Error('invalid');}catch{$('formError').textContent='Сохранённые данные не удалось загрузить. Чтобы не потерять их, изменения заблокированы.';}
 let storageIssue=Boolean($('formError').textContent),cut=10;
 function persist(next){if(storageIssue){$('formError').textContent='Сохранение заблокировано: проверь сохранённые данные.';return false;}try{localStorage.setItem(KEY,JSON.stringify(next));return true;}catch{$('formError').textContent='Браузер не смог сохранить изменения.';return false;}}

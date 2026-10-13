@@ -8,7 +8,7 @@ const cents=s=>{if(s===''||!Number.isFinite(Number(s))||Number(s)<=0||Number(s)>
 let items=[];try{const value=JSON.parse(localStorage.getItem(KEY)||'[]');if(Array.isArray(value)&&value.length<=1000&&value.every(valid)&&new Set(value.map(x=>x.id)).size===value.length)items=value;else throw Error('invalid');}catch{$('formError').textContent='Сохранённые данные не удалось загрузить. Чтобы не потерять их, изменения заблокированы.';}
 let storageIssue=Boolean($('formError').textContent),cut=10;
 function persist(next){if(storageIssue){$('formError').textContent='Сохранение заблокировано: проверь сохранённые данные.';return false;}try{localStorage.setItem(KEY,JSON.stringify(next));return true;}catch{$('formError').textContent='Браузер не смог сохранить изменения.';return false;}}
-const annual=item=>annual(item)*(item.count??1);
+const annual=item=>item.amount*frequency[item.frequency]*(item.count??1);
 function totals(){return items.reduce((sum,item)=>sum+annual(item),0);}
 function renderCategories(){
  const root=$('categoryBreakdown');root.replaceChildren();
@@ -40,7 +40,7 @@ function editExpense(item){
 }
 $('cancelEdit').addEventListener('click',resetEditor);
 function render(){const year=totals();renderCategories();$('yearlyTotal').textContent=rub(year);$('monthlyTotal').textContent=rub(Math.round(year/12));$('expenseCount').textContent=items.length;
-const first=[...items].sort((a,b)=>annual(b)-annual(a))[0];$('insight').textContent=first?'Больше всего в этом списке за год уходит на «'+first.name+'»: '+rub(first.amount*frequency[first.frequency])+'. Подумай, насколько эта трата тебе полезна.':'Добавь хотя бы одну трату, чтобы увидеть её реальную стоимость.';
+const first=[...items].sort((a,b)=>annual(b)-annual(a))[0];$('insight').textContent=first?'Больше всего в этом списке за год уходит на «'+first.name+'»: '+rub(annual(first))+'. Подумай, насколько эта трата тебе полезна.':'Добавь хотя бы одну трату, чтобы увидеть её реальную стоимость.';
 const filter=$('cutCategory').value;const eligible=items.filter(x=>filter==='all'||x.category===filter);const eligibleYear=eligible.reduce((total,x)=>total+annual(x),0);const yearlySavings=Math.round(eligibleYear*cut/100);$('savedYear').textContent=rub(yearlySavings);$('savedFive').textContent=rub(yearlySavings*5);$('cutExplanation').textContent='Сценарий: сократить '+(filter==='all'?'все указанные расходы':('категорию «'+categories[filter]+'»'))+' на '+cut+'%. База расчёта — '+rub(eligibleYear)+' в год.';
 const root=$('expenseList');root.replaceChildren();$('clearItems').hidden=!items.length;
 if(!items.length){const p=document.createElement('p');p.className='muted';p.textContent='Список пока пуст.';root.append(p);return;}

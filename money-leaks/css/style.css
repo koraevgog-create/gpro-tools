@@ -37,3 +37,6 @@
 
 /* Level 7: backup safety controls */
 .backup-actions{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}.backup-actions .button,.import-label{min-height:44px}.import-label{display:inline-flex;justify-content:center;align-items:center;border-radius:11px;padding:12px 17px;background:#4d385b;color:#fce6f4;font-weight:800;cursor:pointer;position:relative}.import-label input{position:absolute;opacity:0;width:1px;height:1px;left:50%;bottom:0}.import-label:focus-within{outline:2px solid #ffc4b5;outline-offset:2px}.backup #backupStatus{min-height:20px;overflow-wrap:anywhere}@media(max-width:520px){.backup-actions>*{flex:1 1 100%}}
+
+/* Level 8: final input and focus refinement */
+.button,.chip,.import-label{transition:filter .16s ease,transform .16s ease}.button:active,.chip:active{transform:translateY(1px)}.item button,.backup-actions button{min-height:42px}.item:focus-within{border-color:#e7b1d5}.panel .muted{overflow-wrap:anywhere}.stats strong,.savings strong{font-variant-numeric:tabular-nums}@media(max-width:520px){.backup-actions .button,.backup-actions .import-label{width:100%}}@media(prefers-reduced-motion:reduce){.button,.chip,.import-label{transition:none}}

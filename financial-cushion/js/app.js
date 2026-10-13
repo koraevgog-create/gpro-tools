@@ -5,10 +5,10 @@ const HISTORY_KEY='gpro-emergency-fund-history-v1';
 let operations=[];
 try{const x=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');if(Array.isArray(x)&&x.length<=5000&&x.every(o=>o&&typeof o.id==='string'&&['deposit','withdrawal'].includes(o.type)&&Number.isSafeInteger(o.amount)&&o.amount>0&&/^\d{4}-\d{2}-\d{2}$/.test(o.date)&&typeof o.note==='string'&&o.note.length<=80))operations=x;}catch{}
 const rub=c=>(c/100).toLocaleString('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:2});
-const cents=value=>{if(value===''||!Number.isFinite(Number(value))||Number(value)<0||Number(value)>1e12)return null;let x=Math.round(Number(value)*100);return Number.isSafeInteger(x)?x:null;};
+const cents=value=>{if(value===''||!Number.isFinite(Number(value))||Number(value)<0||Number(value)>1e12)return null;let x=Math.round(Number(value)*100);return Number.isSafeInteger(x)&&x<=1e14?x:null;};
 function calculate(expenses,saved,months,contribution){
   if(!Number.isSafeInteger(expenses)||expenses<=0||!Number.isSafeInteger(saved)||saved<0||(!Number.isInteger(months)||months<1||months>36)||!Number.isSafeInteger(contribution)||contribution<0)return null;
-  const target=expenses*months;if(!Number.isSafeInteger(target))return null;
+  const target=expenses*months;if(!Number.isSafeInteger(target)||target<=0||saved>1e14||contribution>1e14)return null;
   const missing=Math.max(0,target-saved),progress=Math.min(100,100*saved/target);
   const eta=missing===0?0:contribution===0?null:Math.ceil(missing/contribution);
   return {target,missing,progress,coverage:saved/expenses,eta,expenses,saved,months,contribution};
@@ -190,7 +190,7 @@ $('importBackup').addEventListener('change',async event=>{
      $('months').value=[3,6,9,12].includes(x.months)?String(x.months):'custom';
      $('customMonthsWrap').hidden=$('months').value!=='custom';$('customMonths').value=x.months;
      render(calculate(x.expenses,x.saved,x.months,x.contribution));
-   }else{$('calcForm').reset();for(const id of ['target','coverage','missing','eta'])$(id).textContent='—';$('progressBar').style.width='0';$('progressTrack').setAttribute('aria-valuenow','0');$('resultStatus').textContent='Ожидает расчёта';$('milestoneList').textContent='Сначала рассчитай финансовую подушку.';$('scenarioList').textContent='После расчёта появятся варианты накопления.';}
+   }else{$('calcForm').reset();$('customMonthsWrap').hidden=true;for(const id of ['target','coverage','missing','eta'])$(id).textContent='—';$('progressBar').style.width='0';$('progressTrack').setAttribute('aria-valuenow','0');$('resultStatus').textContent='Ожидает расчёта';$('progressCaption').textContent='Заполни форму, чтобы увидеть прогресс.';$('guidance').textContent='Начни с необходимых ежемесячных расходов и текущих накоплений.';$('milestoneList').textContent='Сначала рассчитай финансовую подушку.';$('scenarioList').textContent='После расчёта появятся варианты накопления.';}
    applyPreferences();renderOperations();$('backupMessage').textContent='Копия восстановлена. Операций: '+operations.length+'.';
  }catch{$('backupMessage').textContent='Не удалось сохранить восстановленные данные. Текущие записи проверь вручную.';}
 });

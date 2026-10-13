@@ -65,3 +65,42 @@ $('applyCustomCut').addEventListener('click',()=>{const value=Number($('customCu
 $('resetPreferences').addEventListener('click',()=>{sortPreference='expensive';cut=10;$('sortPreference').value=sortPreference;$('customCut').value=10;$('cutCategory').value='all';$('listCategory').value='all';for(const b of document.querySelectorAll('[data-cut]')){b.classList.toggle('selected',Number(b.dataset.cut)===10);b.setAttribute('aria-pressed',String(Number(b.dataset.cut)===10));}saveSettings();render();});
 for(const b of document.querySelectorAll('[data-cut]')){b.classList.toggle('selected',Number(b.dataset.cut)===cut);b.setAttribute('aria-pressed',String(Number(b.dataset.cut)===cut));}
 render();
+
+/* Level 7: local backup, strict validation and reversible restore */
+function validSettings(p){return p&&typeof p==='object'&&['expensive','cheap','name'].includes(p.sort)&&Number.isInteger(p.cut)&&p.cut>=1&&p.cut<=100&&['all',...Object.keys(categories)].includes(p.category)&&['all',...Object.keys(categories)].includes(p.listCategory);}
+function checkStored(){
+ try{
+  const rawItems=localStorage.getItem(KEY),rawPrefs=localStorage.getItem(SETTINGS_KEY);
+  if(rawItems!==null){const data=JSON.parse(rawItems);if(!Array.isArray(data)||data.length>1000||!data.every(valid)||new Set(data.map(x=>x.id)).size!==data.length)return 'Повреждён список расходов.';}
+  if(rawPrefs!==null&&!validSettings(JSON.parse(rawPrefs)))return 'Повреждены настройки.';
+  return null;
+ }catch{return 'Не удалось прочитать сохранённые данные.';}
+}
+function validBackup(b){return b&&b.app==='gpro-money-leaks'&&b.version===1&&Array.isArray(b.items)&&b.items.length<=1000&&b.items.every(valid)&&new Set(b.items.map(x=>x.id)).size===b.items.length&&validSettings(b.preferences);}
+function preferenceSnapshot(){return {sort:sortPreference,cut,category:$('cutCategory').value,listCategory:$('listCategory').value};}
+$('checkData').addEventListener('click',()=>{$('backupStatus').textContent=checkStored()||'Проверка пройдена. Не забывай периодически скачивать резервную копию.';});
+$('exportBackup').addEventListener('click',()=>{
+ const issue=checkStored();if(issue){$('backupStatus').textContent=issue+' Сначала сохрани исходные данные отдельно.';return;}
+ const payload={app:'gpro-money-leaks',version:1,exportedAt:new Date().toISOString(),items,preferences:preferenceSnapshot()};
+ const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='gpro-money-leaks-'+new Date().toISOString().slice(0,10)+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+ $('backupStatus').textContent='Копия подготовлена к скачиванию.';
+});
+$('importBackup').addEventListener('change',async event=>{
+ const file=event.target.files?.[0];event.target.value='';if(!file)return;
+ if(file.size>1024*1024){$('backupStatus').textContent='Файл слишком большой (максимум 1 МБ).';return;}
+ let data;try{data=JSON.parse(await file.text());}catch{$('backupStatus').textContent='Не удалось прочитать JSON-файл.';return;}
+ if(!validBackup(data)){$('backupStatus').textContent='Файл не подходит, данные не изменены.';return;}
+ if(!confirm('Заменить список расходов и настройки данными из файла?'))return;
+ const previous=[];
+ try{
+  for(const key of [KEY,SETTINGS_KEY])previous.push(localStorage.getItem(key));
+  localStorage.setItem(KEY,JSON.stringify(data.items));
+  try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(data.preferences));}catch(e){if(previous[0]===null)localStorage.removeItem(KEY);else localStorage.setItem(KEY,previous[0]);throw e;}
+ }catch{$('backupStatus').textContent='Не удалось сохранить копию в браузере. Проверь настройки хранилища.';return;}
+ items=data.items;storageIssue=false;sortPreference=data.preferences.sort;cut=data.preferences.cut;
+ $('sortPreference').value=sortPreference;$('customCut').value=cut;$('cutCategory').value=data.preferences.category;$('listCategory').value=data.preferences.listCategory;
+ for(const b of document.querySelectorAll('[data-cut]')){const checked=Number(b.dataset.cut)===cut;b.classList.toggle('selected',checked);b.setAttribute('aria-pressed',String(checked));}
+ resetEditor();render();$('backupStatus').textContent='Данные восстановлены: '+items.length+' расходов.';
+});
+const startupProblem=checkStored();if(startupProblem){storageIssue=true;$('backupStatus').textContent='Внимание: '+startupProblem+' Не очищай данные до восстановления.';}

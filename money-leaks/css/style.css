@@ -34,3 +34,6 @@
 
 /* Level 6: saved personal controls, violet-coral variant 03 */
 .preferences .preference-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:20px 0}.preference-actions{display:flex;flex-wrap:wrap;gap:10px}.preferences #preferencesStatus{min-height:18px;margin-bottom:0}.preferences input,.preferences select{min-height:46px}@media(max-width:590px){.preferences .preference-grid{grid-template-columns:1fr}.preference-actions .button{flex:1 1 100%}}
+
+/* Level 7: backup safety controls */
+.backup-actions{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}.backup-actions .button,.import-label{min-height:44px}.import-label{display:inline-flex;justify-content:center;align-items:center;border-radius:11px;padding:12px 17px;background:#4d385b;color:#fce6f4;font-weight:800;cursor:pointer;position:relative}.import-label input{position:absolute;opacity:0;width:1px;height:1px;left:50%;bottom:0}.import-label:focus-within{outline:2px solid #ffc4b5;outline-offset:2px}.backup #backupStatus{min-height:20px;overflow-wrap:anywhere}@media(max-width:520px){.backup-actions>*{flex:1 1 100%}}

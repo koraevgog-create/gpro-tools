@@ -10,10 +10,10 @@ let storageIssue=Boolean($('formError').textContent),cut=10;
 const SETTINGS_KEY='gpro-money-leaks-prefs-v1';
 let sortPreference='expensive';
 try{const p=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'null');if(p&&['expensive','cheap','name'].includes(p.sort))sortPreference=p.sort;if(p&&Number.isInteger(p.cut)&&p.cut>=1&&p.cut<=100)cut=p.cut;if(p&&Object.hasOwn(categories,p.category))$('cutCategory').value=p.category;else if(p?.category==='all')$('cutCategory').value='all';if(p&&Object.hasOwn(categories,p.listCategory))$('listCategory').value=p.listCategory;else if(p?.listCategory==='all')$('listCategory').value='all';}catch{}
-function saveSettings(){try{localStorage.setItem(SETTINGS_KEY,JSON.stringify({sort:sortPreference,cut,category:$('cutCategory').value,listCategory:$('listCategory').value}));$('preferencesStatus').textContent='Настройки сохранены.';}catch{$('preferencesStatus').textContent='Не удалось сохранить настройки браузера.';}}
+function saveSettings(){if(checkStored()){storageIssue=true;$('preferencesStatus').textContent='Обнаружены повреждённые данные. Восстанови копию.';return;}try{localStorage.setItem(SETTINGS_KEY,JSON.stringify({sort:sortPreference,cut,category:$('cutCategory').value,listCategory:$('listCategory').value}));$('preferencesStatus').textContent='Настройки сохранены.';}catch{$('preferencesStatus').textContent='Не удалось сохранить настройки браузера.';}}
 function sortItems(list){return [...list].sort((a,b)=>sortPreference==='name'?a.name.localeCompare(b.name,'ru'):sortPreference==='cheap'?annual(a)-annual(b):annual(b)-annual(a));}
 
-function persist(next){if(storageIssue){$('formError').textContent='Сохранение заблокировано: проверь сохранённые данные.';return false;}try{localStorage.setItem(KEY,JSON.stringify(next));return true;}catch{$('formError').textContent='Браузер не смог сохранить изменения.';return false;}}
+function persist(next){if(checkStored()){storageIssue=true;$('formError').textContent='Обнаружены повреждённые данные. Восстанови резервную копию.';return false;}if(storageIssue){$('formError').textContent='Сохранение заблокировано: проверь сохранённые данные.';return false;}try{localStorage.setItem(KEY,JSON.stringify(next));return true;}catch{$('formError').textContent='Браузер не смог сохранить изменения.';return false;}}
 const annual=item=>item.amount*frequency[item.frequency]*(item.count??1);
 function totals(){return items.reduce((sum,item)=>sum+annual(item),0);}
 function renderCategories(){

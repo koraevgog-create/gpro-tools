@@ -13,7 +13,7 @@ function showAlternatives(x){
   heading.append(label,amount);
   const result=document.createElement('p');
   result.textContent=scenario.months===null?'Цель не достигнута за 50 лет':scenario.months===0?'Можно купить уже сейчас':'Срок: '+resultText(scenario.months)+' · Цена: '+rub(scenario.future);
-  article.append(heading,result);root.append(article);
+  if(mult>1){const apply=document.createElement('button');apply.type='button';apply.className='button secondary apply-alternative';apply.textContent='Выбрать этот взнос';apply.setAttribute('aria-label','Установить ежемесячный взнос '+rub(contribution));apply.addEventListener('click',()=>{$('monthly').value=(contribution/100).toFixed(2);$('calculator').requestSubmit();$('monthly').focus();});article.append(heading,result,apply);}else article.append(heading,result);root.append(article);
  }
 }
 function credit(shortfall,rate,term){if(!Number.isSafeInteger(shortfall)||shortfall<0||!Number.isFinite(rate)||rate<0||rate>100||!Number.isInteger(term)||term<1||term>120)return null;if(shortfall===0)return {payment:0,overpayment:0};const r=rate/1200;const pay=r===0?shortfall/term:shortfall*r/(1-Math.pow(1+r,-term));if(!Number.isFinite(pay))return null;return {payment:Math.round(pay),overpayment:Math.max(0,Math.round(pay*term-shortfall))};}
@@ -21,6 +21,7 @@ function showCredit(x){const rate=Number($('loanRate').value),term=Number($('loa
 function read(){const price=money($('price').value),saved=money($('savings').value),monthly=money($('monthly').value),growth=Number($('growth').value);if($('growth').value===''||price===null||saved===null||monthly===null)return null;return calculate(price,saved,monthly,growth)}
 $('calculator').addEventListener('submit',e=>{e.preventDefault();const x=read();if(!x){$('error').textContent='Проверь суммы и процент: цена больше нуля, остальные суммы неотрицательные.';return;}$('error').textContent='';$('purchaseTitle').textContent=$('item').value.trim()||'Новая покупка';show(x);showCredit(x);showAlternatives(x);try{localStorage.setItem(KEY,JSON.stringify({item:$('item').value.slice(0,75),price:$('price').value,savings:$('savings').value,monthly:$('monthly').value,growth:$('growth').value,loanRate:$('loanRate').value,loanTerm:$('loanTerm').value}));}catch{$('error').textContent='Расчёт выполнен, но сохранить его в браузере не удалось.';}});
 $('reset').addEventListener('click',()=>{if(!confirm('Сбросить расчёт к исходным значениям?'))return;$('calculator').reset();try{localStorage.removeItem(KEY)}catch{}$('calculator').requestSubmit();});
+let liveUpdate=null;for(const id of ['item','price','savings','monthly','growth','loanRate','loanTerm'])$(id).addEventListener('input',()=>{clearTimeout(liveUpdate);liveUpdate=setTimeout(()=>{$('calculator').requestSubmit();},260);});
 for(const id of ['loanRate','loanTerm'])$(id).addEventListener('change',()=>{$('calculator').requestSubmit();});
 try{const saved=JSON.parse(localStorage.getItem(KEY)||'null');if(saved&&typeof saved==='object'){for(const id of ['item','price','savings','monthly','growth','loanRate','loanTerm'])if(typeof saved[id]==='string')$(id).value=saved[id];}}catch{}
 $('calculator').requestSubmit();

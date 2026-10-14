@@ -34,3 +34,6 @@
 
 /* Level 6: personal settings in approved design 04 */
 .personal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:19px 0}.personal-grid input{min-height:45px}.check-line{display:flex;flex-direction:row;align-items:center;gap:12px;margin:18px 0;font-size:14px}.check-line input{width:19px;height:19px;accent-color:#6eddd2;flex-shrink:0}.personal-actions{display:flex;gap:10px}.personal #personalStatus{min-height:18px}[hidden]{display:none!important}@media(max-width:480px){.personal-grid{grid-template-columns:1fr}.personal-actions .button{width:100%}}
+
+/* Level 7: backups and reliable restore */
+.backup-actions{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}.backup-actions .button,.import-label{min-height:44px}.import-label{display:inline-flex;align-items:center;justify-content:center;position:relative;background:#2e4b66;color:#e3f2ff;border-radius:12px;padding:12px 19px;cursor:pointer;font-size:14px;font-weight:800}.import-label input{position:absolute;left:50%;bottom:0;opacity:0;width:1px;height:1px}.import-label:focus-within{outline:2px solid #70dbd3;outline-offset:2px}.backup #backupStatus{min-height:20px;overflow-wrap:anywhere}@media(max-width:520px){.backup-actions>*{width:100%;flex:1 1 100%}}

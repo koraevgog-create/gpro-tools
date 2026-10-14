@@ -2,6 +2,7 @@
 function calculate(price,saved,monthly,growth){if([price,saved,monthly].some(x=>!Number.isSafeInteger(x)||x<0||x>1e11)||price<=0||!Number.isFinite(growth)||growth< -30||growth>100)return null;const shortfall=Math.max(price-saved,0);const r=Math.pow(1+growth/100,1/12);let target=price, months=0;const canNow=saved>=price; if(!canNow){let found=false;for(let i=1;i<=600;i++){target=price*Math.pow(r,i);if(!Number.isFinite(target)||target>1e13)break;if(saved+monthly*i>=target){months=i;found=true;break;}}if(!found)months=null;}const future=months===null?null:Math.round(target);const remainder=months===null?null:Math.round(saved+monthly*months-future);return {shortfall,months,future,remainder,price,saved,monthly,growth,progress:Math.min(100,saved/price*100),canNow};}
 function show(x){$('shortfall').textContent=rub(x.shortfall);$('months').textContent=x.months===null?'Свыше 50 лет / недостижимо':resultText(x.months);$('futurePrice').textContent=x.future===null?'—':rub(x.future);$('remaining').textContent=x.remainder===null?'—':rub(x.remainder);$('meter').setAttribute('aria-valuenow',String(Math.round(x.progress)));$('fill').style.width=x.progress+'%';$('progressText').textContent='Сейчас накоплено '+x.progress.toLocaleString('ru-RU',{maximumFractionDigits:1})+'% от сегодняшней цены.';$('nowResult').textContent=x.canNow?'Денег хватает. После покупки останется '+rub(x.saved-x.price)+'. Оцени, достаточен ли оставшийся резерв.':'Не хватает '+rub(x.shortfall)+'. Без дополнительных денег оплатить полную стоимость сейчас не получится.';$('waitResult').textContent=x.months===null?'При выбранных параметрах накопление не достигает прогнозируемой цены за 50 лет. Пересмотри ежемесячный взнос или рост цены.':x.months===0?'Покупку уже можно оплатить из накоплений.':'При регулярных взносах потребуется '+resultText(x.months)+'. Прогнозная цена покупки — '+rub(x.future)+'.';$('advice').textContent=x.canNow?'Покупка доступна сегодня. Сравни её важность с резервом, который останется после оплаты.':x.months===null?'При текущих параметрах цель не достигнута в пределах расчёта. Попробуй увеличить взнос или выбрать более доступную альтернативу.':x.months<=3?'До цели относительно недолго. Реши, стоит ли подождать и избежать заимствований.':'Покупка потребует времени. Сопоставь пользу покупки с другими финансовыми целями.';}
 const PERSONAL_KEY='gpro-buy-or-save-personal-v1';
+let storageLocked=false;
 let personalization={one:25,two:50,showLoan:true};
 try{const saved=JSON.parse(localStorage.getItem(PERSONAL_KEY)||'null');if(saved&&Number.isInteger(saved.one)&&saved.one>=1&&saved.one<=300&&Number.isInteger(saved.two)&&saved.two>=1&&saved.two<=300&&typeof saved.showLoan==='boolean')personalization=saved;}catch{}
 function refreshPersonal(){ $('increaseOne').value=personalization.one;$('increaseTwo').value=personalization.two;$('showLoan').checked=personalization.showLoan;$('loanSection').hidden=!personalization.showLoan; }
@@ -30,6 +31,7 @@ let liveUpdate=null;for(const id of ['item','price','savings','monthly','growth'
 for(const id of ['loanRate','loanTerm'])$(id).addEventListener('change',()=>{$('calculator').requestSubmit();});
 try{const saved=JSON.parse(localStorage.getItem(KEY)||'null');if(saved&&typeof saved==='object'){for(const id of ['item','price','savings','monthly','growth','loanRate','loanTerm'])if(typeof saved[id]==='string')$(id).value=saved[id];}}catch{}
 refreshPersonal();
+storageLocked=Boolean(checkStorage());
 for(const [id,key] of [['increaseOne','one'],['increaseTwo','two']])$(id).addEventListener('change',()=>{
  const v=Number($(id).value);if(!Number.isInteger(v)||v<1||v>300){$('personalStatus').textContent='Укажи целое увеличение от 1 до 300%.';return;}
  personalization[key]=v;savePersonal();$('calculator').requestSubmit();
@@ -56,7 +58,7 @@ function checkStorage(){
   return '';
  }catch{return 'Не удалось проверить данные браузера.';}
 }
-let storageLocked=Boolean(checkStorage());
+storageLocked=Boolean(checkStorage());
 function showStorageProblem(){if(storageLocked)$('backupStatus').textContent='Внимание: '+checkStorage()+' Запись приостановлена, чтобы не стереть исходные данные.';}
 $('validateData').addEventListener('click',()=>{$('backupStatus').textContent=checkStorage()||'Сохранённые данные прошли проверку.';});
 $('exportData').addEventListener('click',()=>{

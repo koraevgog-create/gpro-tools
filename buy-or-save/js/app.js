@@ -1,9 +1,14 @@
 'use strict';const $=id=>document.getElementById(id);const KEY='gpro-buy-or-save-v1';const rub=c=>(c/100).toLocaleString('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0});const money=v=>{if(v===''||!Number.isFinite(Number(v))||Number(v)<0||Number(v)>1e9)return null;return Math.round(Number(v)*100)};const resultText=(n)=>n===null?'Не рассчитано':n===0?'Сейчас':n===1?'1 месяц':n+' мес.';
 function calculate(price,saved,monthly,growth){if([price,saved,monthly].some(x=>!Number.isSafeInteger(x)||x<0||x>1e11)||price<=0||!Number.isFinite(growth)||growth< -30||growth>100)return null;const shortfall=Math.max(price-saved,0);const r=Math.pow(1+growth/100,1/12);let target=price, months=0;const canNow=saved>=price; if(!canNow){let found=false;for(let i=1;i<=600;i++){target=price*Math.pow(r,i);if(!Number.isFinite(target)||target>1e13)break;if(saved+monthly*i>=target){months=i;found=true;break;}}if(!found)months=null;}const future=months===null?null:Math.round(target);const remainder=months===null?null:Math.round(saved+monthly*months-future);return {shortfall,months,future,remainder,price,saved,monthly,growth,progress:Math.min(100,saved/price*100),canNow};}
 function show(x){$('shortfall').textContent=rub(x.shortfall);$('months').textContent=x.months===null?'Свыше 50 лет / недостижимо':resultText(x.months);$('futurePrice').textContent=x.future===null?'—':rub(x.future);$('remaining').textContent=x.remainder===null?'—':rub(x.remainder);$('meter').setAttribute('aria-valuenow',String(Math.round(x.progress)));$('fill').style.width=x.progress+'%';$('progressText').textContent='Сейчас накоплено '+x.progress.toLocaleString('ru-RU',{maximumFractionDigits:1})+'% от сегодняшней цены.';$('nowResult').textContent=x.canNow?'Денег хватает. После покупки останется '+rub(x.saved-x.price)+'. Оцени, достаточен ли оставшийся резерв.':'Не хватает '+rub(x.shortfall)+'. Без дополнительных денег оплатить полную стоимость сейчас не получится.';$('waitResult').textContent=x.months===null?'При выбранных параметрах накопление не достигает прогнозируемой цены за 50 лет. Пересмотри ежемесячный взнос или рост цены.':x.months===0?'Покупку уже можно оплатить из накоплений.':'При регулярных взносах потребуется '+resultText(x.months)+'. Прогнозная цена покупки — '+rub(x.future)+'.';$('advice').textContent=x.canNow?'Покупка доступна сегодня. Сравни её важность с резервом, который останется после оплаты.':x.months===null?'При текущих параметрах цель не достигнута в пределах расчёта. Попробуй увеличить взнос или выбрать более доступную альтернативу.':x.months<=3?'До цели относительно недолго. Реши, стоит ли подождать и избежать заимствований.':'Покупка потребует времени. Сопоставь пользу покупки с другими финансовыми целями.';}
+const PERSONAL_KEY='gpro-buy-or-save-personal-v1';
+let personalization={one:25,two:50,showLoan:true};
+try{const saved=JSON.parse(localStorage.getItem(PERSONAL_KEY)||'null');if(saved&&Number.isInteger(saved.one)&&saved.one>=1&&saved.one<=300&&Number.isInteger(saved.two)&&saved.two>=1&&saved.two<=300&&typeof saved.showLoan==='boolean')personalization=saved;}catch{}
+function refreshPersonal(){ $('increaseOne').value=personalization.one;$('increaseTwo').value=personalization.two;$('showLoan').checked=personalization.showLoan;$('loanSection').hidden=!personalization.showLoan; }
+function savePersonal(){try{localStorage.setItem(PERSONAL_KEY,JSON.stringify(personalization));$('personalStatus').textContent='Настройки сохранены.';}catch{$('personalStatus').textContent='Не удалось сохранить настройки браузера.';}}
 function showAlternatives(x){
  const root=$('alternativeRows');root.replaceChildren();
- for(const [name,mult] of [['Текущий план',1],['Взнос +25%',1.25],['Взнос +50%',1.5]]){
+ for(const [name,mult] of [['Текущий план',1],['Взнос +'+personalization.one+'%',1+personalization.one/100],['Взнос +'+personalization.two+'%',1+personalization.two/100]]){
   const contribution=Math.round(x.monthly*mult);
   const scenario=calculate(x.price,x.saved,contribution,x.growth);
   const article=document.createElement('article');article.className='alternative-row';
@@ -24,4 +29,11 @@ $('reset').addEventListener('click',()=>{if(!confirm('Сбросить расч�
 let liveUpdate=null;for(const id of ['item','price','savings','monthly','growth','loanRate','loanTerm'])$(id).addEventListener('input',()=>{clearTimeout(liveUpdate);liveUpdate=setTimeout(()=>{$('calculator').requestSubmit();},260);});
 for(const id of ['loanRate','loanTerm'])$(id).addEventListener('change',()=>{$('calculator').requestSubmit();});
 try{const saved=JSON.parse(localStorage.getItem(KEY)||'null');if(saved&&typeof saved==='object'){for(const id of ['item','price','savings','monthly','growth','loanRate','loanTerm'])if(typeof saved[id]==='string')$(id).value=saved[id];}}catch{}
+refreshPersonal();
+for(const [id,key] of [['increaseOne','one'],['increaseTwo','two']])$(id).addEventListener('change',()=>{
+ const v=Number($(id).value);if(!Number.isInteger(v)||v<1||v>300){$('personalStatus').textContent='Укажи целое увеличение от 1 до 300%.';return;}
+ personalization[key]=v;savePersonal();$('calculator').requestSubmit();
+});
+$('showLoan').addEventListener('change',()=>{personalization.showLoan=$('showLoan').checked;refreshPersonal();savePersonal();});
+$('resetPersonal').addEventListener('click',()=>{personalization={one:25,two:50,showLoan:true};refreshPersonal();savePersonal();$('calculator').requestSubmit();});
 $('calculator').requestSubmit();

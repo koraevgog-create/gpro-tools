@@ -25,8 +25,8 @@ function showAlternatives(x){
 function credit(shortfall,rate,term){if(!Number.isSafeInteger(shortfall)||shortfall<0||!Number.isFinite(rate)||rate<0||rate>100||!Number.isInteger(term)||term<1||term>120)return null;if(shortfall===0)return {payment:0,overpayment:0};const r=rate/1200;const pay=r===0?shortfall/term:shortfall*r/(1-Math.pow(1+r,-term));if(!Number.isFinite(pay))return null;return {payment:Math.round(pay),overpayment:Math.max(0,Math.round(pay*term-shortfall))};}
 function showCredit(x){const rate=Number($('loanRate').value),term=Number($('loanTerm').value);const result=$('loanRate').value!==''&&$('loanTerm').value!==''?credit(x.shortfall,rate,term):null;$('loanPayment').textContent=result?rub(result.payment):'—';$('loanOverpayment').textContent=result?rub(result.overpayment):'—';$('loanAdvice').textContent=!result?'Проверь ставку и срок: 0–100% годовых, от 1 до 120 месяцев.':x.shortfall===0?'Для покупки уже хватает собственных средств: кредит на недостающую сумму не нужен.':'Кредит позволит оплатить недостающую часть сейчас, но потребует '+rub(result.payment)+' ежемесячно. Сопоставь этот платёж со своими возможностями и сроком накопления.';}
 function read(){const price=money($('price').value),saved=money($('savings').value),monthly=money($('monthly').value),growth=Number($('growth').value);if($('growth').value===''||price===null||saved===null||monthly===null)return null;return calculate(price,saved,monthly,growth)}
-$('calculator').addEventListener('submit',e=>{e.preventDefault();const x=read();if(!x){$('error').textContent='Проверь суммы и процент: цена больше нуля, остальные суммы неотрицательные.';return;}$('error').textContent='';$('purchaseTitle').textContent=$('item').value.trim()||'Новая покупка';show(x);showCredit(x);showAlternatives(x);if(storageLocked||checkStorage()){storageLocked=true;$('error').textContent='Сохранение заблокировано до восстановления данных.';return;}try{localStorage.setItem(KEY,JSON.stringify({item:$('item').value.slice(0,75),price:$('price').value,savings:$('savings').value,monthly:$('monthly').value,growth:$('growth').value,loanRate:$('loanRate').value,loanTerm:$('loanTerm').value}));}catch{$('error').textContent='Расчёт выполнен, но сохранить его в браузере не удалось.';}});
-$('reset').addEventListener('click',()=>{if(!confirm('Сбросить расчёт к исходным значениям?'))return;$('calculator').reset();try{if(!storageLocked&&!checkStorage())localStorage.removeItem(KEY)}catch{}$('calculator').requestSubmit();});
+$('calculator').addEventListener('submit',e=>{e.preventDefault();const x=read();if(!x){$('error').textContent='Проверь суммы и процент: цена больше нуля, остальные суммы неотрицательные.';return;}$('error').textContent='';$('purchaseTitle').textContent=$('item').value.trim()||'Новая покупка';show(x);showCredit(x);showAlternatives(x);if(!validInputs(snapshotInputs())){$('error').textContent='Проверь ставку и срок кредита: от 0 до 100% и от 1 до 120 месяцев.';return;}if(storageLocked||checkStorage()){storageLocked=true;$('error').textContent='Сохранение заблокировано до восстановления данных.';return;}try{localStorage.setItem(KEY,JSON.stringify({item:$('item').value.slice(0,75),price:$('price').value,savings:$('savings').value,monthly:$('monthly').value,growth:$('growth').value,loanRate:$('loanRate').value,loanTerm:$('loanTerm').value}));}catch{$('error').textContent='Расчёт выполнен, но сохранить его в браузере не удалось.';}});
+$('reset').addEventListener('click',()=>{if(!confirm('Сбросить расчёт к исходным значениям?'))return;clearTimeout(liveUpdate);$('calculator').reset();try{if(!storageLocked&&!checkStorage())localStorage.removeItem(KEY)}catch{}$('calculator').requestSubmit();});
 let liveUpdate=null;for(const id of ['item','price','savings','monthly','growth','loanRate','loanTerm'])$(id).addEventListener('input',()=>{clearTimeout(liveUpdate);liveUpdate=setTimeout(()=>{$('calculator').requestSubmit();},260);});
 for(const id of ['loanRate','loanTerm'])$(id).addEventListener('change',()=>{$('calculator').requestSubmit();});
 try{const saved=JSON.parse(localStorage.getItem(KEY)||'null');if(saved&&typeof saved==='object'){for(const id of ['item','price','savings','monthly','growth','loanRate','loanTerm'])if(typeof saved[id]==='string')$(id).value=saved[id];}}catch{}
@@ -46,7 +46,7 @@ function validInputs(o){
  if(!INPUT_IDS.slice(1).every(k=>typeof o[k]==='string'&&o[k].length<=32))return false;
  const p=money(o.price),a=money(o.savings),m=money(o.monthly),g=Number(o.growth);
  const lr=Number(o.loanRate),lt=Number(o.loanTerm);
- return p!==null&&p>0&&a!==null&&m!==null&&o.growth!==''&&Number.isFinite(g)&&g>=-30&&g<=100&&o.loanRate!==''&&Number.isFinite(lr)&&lr>=0&&lr<=100&&o.loanTerm!==''&&Number.isInteger(lt)&&lt>=1&&lt<=120;
+ return p!==null&&p>=100&&a!==null&&m!==null&&o.growth!==''&&Number.isFinite(g)&&g>=-30&&g<=100&&o.loanRate!==''&&Number.isFinite(lr)&&lr>=0&&lr<=100&&o.loanTerm!==''&&Number.isInteger(lt)&&lt>=1&&lt<=120;
 }
 function snapshotInputs(){const o={};for(const id of INPUT_IDS)o[id]=$(id).value;return o;}
 function checkStorage(){
@@ -62,7 +62,7 @@ $('validateData').addEventListener('click',()=>{$('backupStatus').textContent=ch
 $('exportData').addEventListener('click',()=>{
  const issue=checkStorage();if(issue){$('backupStatus').textContent=issue+' Экспорт остановлен.';return;}
  if(!validInputs(snapshotInputs())){$('backupStatus').textContent='Исправь значения в калькуляторе перед экспортом.';return;}
- try{const payload={app:'gpro-buy-or-save',version:1,exportedAt:new Date().toISOString(),inputs:snapshotInputs(),personal:personalization};
+ try{const payload={app:'gpro-buy-or-save',version:1,exportedAt:new Date().toISOString(),inputs:snapshotInputs(),personal:{...personalization}};
  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='gpro-buy-or-save-'+new Date().toISOString().slice(0,10)+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
  $('backupStatus').textContent='Резервная копия подготовлена к скачиванию.';}catch{$('backupStatus').textContent='Не удалось подготовить файл.';}
@@ -80,7 +80,7 @@ $('importData').addEventListener('change',async e=>{
   try{keys.forEach((key,i)=>localStorage.setItem(key,next[i]));}
   catch(err){let rolledBack=true;for(let i=0;i<keys.length;i++)try{if(prev[i]===null)localStorage.removeItem(keys[i]);else localStorage.setItem(keys[i],prev[i]);}catch{rolledBack=false;}throw Error(rolledBack?'write':'rollback');}
  }catch(err){$('backupStatus').textContent=err.message==='rollback'?'Не удалось полностью вернуть прежние данные. Не закрывай страницу.':'Ошибка сохранения. Попытка восстановления отменена.';return;}
- for(const id of INPUT_IDS)$(id).value=data.inputs[id];personalization=data.personal;storageLocked=false;refreshPersonal();$('calculator').requestSubmit();$('backupStatus').textContent='Расчёт и настройки восстановлены.';
+ for(const id of INPUT_IDS)$(id).value=data.inputs[id];personalization={...data.personal};storageLocked=false;refreshPersonal();$('calculator').requestSubmit();$('backupStatus').textContent='Расчёт и настройки восстановлены.';
 });
 showStorageProblem();
 

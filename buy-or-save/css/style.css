@@ -6,3 +6,28 @@
 
 /* Level 4: instant calculation and one-click scenario selection */
 .form-tip{font-size:12px;line-height:1.5;color:#91dcd4;margin:0}.apply-alternative{font-size:12px;padding:9px 12px;margin-top:13px;min-height:41px}.alternative-row:focus-within{border-color:#73dacd}.button:active{transform:translateY(1px)}@media(max-width:450px){.apply-alternative{width:100%}}
+
+/* Level 5: visual polish of approved design #4 */
+.hero{position:relative;isolation:isolate;box-shadow:0 28px 65px #04102077}
+.hero:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 90% 5%,#4b9cb333,transparent 48%);pointer-events:none;z-index:-1}
+.hero-orbit{position:absolute;width:140px;height:140px;border-radius:50%;right:90px;top:30px;border:1px solid #7bdfd42e;box-shadow:0 0 0 30px #6adaca0a,0 0 0 58px #73c2eb09;pointer-events:none}
+.hero h1{position:relative;text-shadow:0 2px 25px #09152350}
+.hero h1 em{color:#ffc69f}
+.panel{box-shadow:0 12px 36px #05142530}
+.section-label{display:block;font-size:11px;letter-spacing:1.65px;text-transform:uppercase;font-weight:800;color:#81e6d5;margin-bottom:9px}
+.output{background:linear-gradient(145deg,#19344d,#142940 75%)}
+.output>.eyebrow{display:block;margin-bottom:9px}
+.output h2{font-size:clamp(21px,3vw,28px);overflow-wrap:anywhere}
+.metrics article{position:relative;overflow:hidden;background:linear-gradient(130deg,#22415c,#1a3450);min-height:105px}
+.metrics article:before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#73deda,#f7c5a3)}
+.metrics article.metric-primary{background:linear-gradient(125deg,#29465b,#233651)}
+.metrics .metric-primary strong{color:#ffd0a9;font-size:clamp(24px,3.7vw,32px)}
+.meter{height:14px;box-shadow:inset 0 2px 6px #041727}
+.meter span{background:linear-gradient(90deg,#45bfc3,#84e9cf);box-shadow:0 0 17px #7decd153;transition:width .24s ease}
+.scenario-grid article{background:linear-gradient(130deg,#1e3c54,#192e48);box-shadow:0 8px 24px #06172b33}
+.scenario-grid article:nth-child(2){border-color:#528d89}
+.alternative-row{transition:border-color .18s ease,transform .18s ease;box-shadow:0 7px 24px #03122425}
+.credit-stats>div{background:linear-gradient(120deg,#23435d,#1b344c)}
+@media(hover:hover){.alternative-row:hover{border-color:#78cecd;transform:translateY(-1px)}}
+@media(max-width:520px){.hero-orbit{right:-30px;top:25px}.metrics article{min-height:93px}.hero h1{letter-spacing:-1.3px}}
+@media(prefers-reduced-motion:reduce){.meter span,.alternative-row{transition:none}}

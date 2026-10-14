@@ -38,8 +38,6 @@ for(const [id,key] of [['increaseOne','one'],['increaseTwo','two']])$(id).addEve
 });
 $('showLoan').addEventListener('change',()=>{personalization.showLoan=$('showLoan').checked;refreshPersonal();savePersonal();});
 $('resetPersonal').addEventListener('click',()=>{personalization={one:25,two:50,showLoan:true};refreshPersonal();savePersonal();$('calculator').requestSubmit();});
-$('calculator').requestSubmit();
-
 /* Level 7: local backup and robust restore. Existing storage keys stay unchanged. */
 const INPUT_IDS=['item','price','savings','monthly','growth','loanRate','loanTerm'];
 function validPersonal(p){return p&&typeof p==='object'&&Number.isInteger(p.one)&&p.one>=1&&p.one<=300&&Number.isInteger(p.two)&&p.two>=1&&p.two<=300&&typeof p.showLoan==='boolean';}
@@ -85,3 +83,5 @@ $('importData').addEventListener('change',async e=>{
  for(const id of INPUT_IDS)$(id).value=data.inputs[id];personalization=data.personal;storageLocked=false;refreshPersonal();$('calculator').requestSubmit();$('backupStatus').textContent='Расчёт и настройки восстановлены.';
 });
 showStorageProblem();
+
+$('calculator').requestSubmit();

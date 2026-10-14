@@ -37,3 +37,6 @@
 
 /* Level 7: backups and reliable restore */
 .backup-actions{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}.backup-actions .button,.import-label{min-height:44px}.import-label{display:inline-flex;align-items:center;justify-content:center;position:relative;background:#2e4b66;color:#e3f2ff;border-radius:12px;padding:12px 19px;cursor:pointer;font-size:14px;font-weight:800}.import-label input{position:absolute;left:50%;bottom:0;opacity:0;width:1px;height:1px}.import-label:focus-within{outline:2px solid #70dbd3;outline-offset:2px}.backup #backupStatus{min-height:20px;overflow-wrap:anywhere}@media(max-width:520px){.backup-actions>*{width:100%;flex:1 1 100%}}
+
+/* Level 8: concise responsive controls and keyboard polish */
+.button,.import-label{transition:filter .16s ease,transform .16s ease}.button:focus-visible,.import-label:focus-within{outline:2px solid #8cefe0;outline-offset:3px}.alternative-row:focus-within{border-color:#8cefe0}.metrics strong,.credit-stats strong{font-variant-numeric:tabular-nums}.panel .muted{overflow-wrap:anywhere}.backup-actions .button{min-height:44px}@media(max-width:490px){.actions{flex-wrap:wrap}.actions .button{flex:1 1 120px}}@media(prefers-reduced-motion:reduce){.button,.import-label{transition:none}}

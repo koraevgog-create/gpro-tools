@@ -31,3 +31,6 @@
 @media(hover:hover){.alternative-row:hover{border-color:#78cecd;transform:translateY(-1px)}}
 @media(max-width:520px){.hero-orbit{right:-30px;top:25px}.metrics article{min-height:93px}.hero h1{letter-spacing:-1.3px}}
 @media(prefers-reduced-motion:reduce){.meter span,.alternative-row{transition:none}}
+
+/* Level 6: personal settings in approved design 04 */
+.personal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:19px 0}.personal-grid input{min-height:45px}.check-line{display:flex;flex-direction:row;align-items:center;gap:12px;margin:18px 0;font-size:14px}.check-line input{width:19px;height:19px;accent-color:#6eddd2;flex-shrink:0}.personal-actions{display:flex;gap:10px}.personal #personalStatus{min-height:18px}[hidden]{display:none!important}@media(max-width:480px){.personal-grid{grid-template-columns:1fr}.personal-actions .button{width:100%}}

@@ -3,3 +3,6 @@
 
 /* Level 3: contribution alternatives */
 .alternatives-list{display:grid;gap:11px;margin-top:18px}.alternative-row{background:#1b354e;border:1px solid #446d83;border-radius:13px;padding:15px 18px}.alternative-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.alternative-heading strong{color:#8ce8d9}.alternative-heading span{font-size:13px;color:#cee2ef}.alternative-row p{font-size:14px;color:#d6e7f1;margin:9px 0 0;line-height:1.5}@media(max-width:460px){.alternative-heading{align-items:flex-start;flex-direction:column;gap:5px}}
+
+/* Level 4: instant calculation and one-click scenario selection */
+.form-tip{font-size:12px;line-height:1.5;color:#91dcd4;margin:0}.apply-alternative{font-size:12px;padding:9px 12px;margin-top:13px;min-height:41px}.alternative-row:focus-within{border-color:#73dacd}.button:active{transform:translateY(1px)}@media(max-width:450px){.apply-alternative{width:100%}}

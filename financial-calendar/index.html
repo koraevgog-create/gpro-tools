@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#181b33"><meta name="description" content="Финансовый календарь GPRO: платежи, доходы и денежный итог по датам. Бесплатно, без регистрации.">
+<title>Финансовый календарь — GPRO</title><link rel="stylesheet" href="./css/style.css?v=0.1.0"></head>
+<body><main class="shell">
+<header class="top"><div class="brand"><span class="mark">G</span><strong>GPRO</strong><span class="brand-sub">/ Финансовый календарь</span></div><span class="tag">Сервис № 07</span></header>
+<section class="hero"><div class="eyebrow">Финансовая ясность · Бесплатный инструмент</div><h1>Твои деньги.<br><em>Твои даты.</em></h1><p>Отмечай предстоящие платежи и поступления. Смотри, какие дни потребуют денег и каким будет баланс месяца — без таблиц и сложной бухгалтерии.</p><p class="privacy">🔒 Всё сохраняется только в этом браузере. Банковские данные не требуются.</p></section>
+<div class="layout"><section class="panel editor"><div class="kicker">Новая запись</div><h2>Запланировать событие</h2><form id="entryForm" novalidate>
+<label>Название<input id="entryName" type="text" maxlength="80" placeholder="Например, аренда квартиры" required></label>
+<div class="two"><label>Тип<select id="entryType"><option value="expense">Расход</option><option value="income">Поступление</option></select></label><label>Сумма, ₽<input id="entryAmount" type="number" min="0.01" max="1000000000" step="0.01" placeholder="Например, 15000" required></label></div>
+<label>Дата события<input id="entryDate" type="date" required></label><p id="formError" class="error" role="alert"></p>
+<button type="submit" class="button primary">Добавить в календарь <span aria-hidden="true">↗</span></button></form><p class="note">На первом уровне добавляются разовые события. Регулярные платежи и расширенное планирование — в следующих версиях.</p></section>
+<section class="panel overview"><div class="kicker">Обзор месяца</div><div class="month-head"><h2 id="monthTitle">Финансовый календарь</h2><div class="nav"><button id="prevMonth" class="nav-btn" type="button" aria-label="Предыдущий месяц">‹</button><button id="todayMonth" class="nav-btn today" type="button">Сегодня</button><button id="nextMonth" class="nav-btn" type="button" aria-label="Следующий месяц">›</button></div></div>
+<div class="summary"><div><span>Поступления</span><strong id="totalIncome">0 ₽</strong></div><div><span>Платежи</span><strong id="totalExpense">0 ₽</strong></div><div class="balance"><span>Разница за месяц</span><strong id="totalBalance">0 ₽</strong></div></div>
+<p class="hint" id="monthHint">Разница — поступления минус платежи. Это не остаток на счёте.</p></section></div>
+<section class="panel calendar-panel"><div class="section-head"><div><div class="kicker">По датам</div><h2>Календарь событий</h2></div><div class="legend"><span><i class="dot income"></i> Поступления</span><span><i class="dot expense"></i> Платежи</span></div></div>
+<div class="weekdays" aria-hidden="true"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div><div id="calendarGrid" class="calendar-grid" role="group" aria-label="Календарь выбранного месяца"></div><p class="hint">Нажми на день, чтобы посмотреть события этой даты.</p></section>
+<section class="panel event-panel"><div class="section-head"><div><div class="kicker">Список событий</div><h2 id="selectedDayTitle">События за день</h2></div><span class="count" id="eventsCount">0 событий</span></div><div id="dayEvents" class="events"><p class="empty">На выбранный день событий пока нет.</p></div></section>
+<footer>GPRO · Финансовый календарь · v0.1.0 · Уровень 1/9 — на проверке</footer></main>
+<script src="./js/app.js?v=0.1.0"></script></body></html>

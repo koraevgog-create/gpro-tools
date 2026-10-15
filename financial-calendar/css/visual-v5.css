@@ -1,0 +1,29 @@
+/* GPRO Financial Calendar · Level 5: visual quality */
+:root{color-scheme:light;color:#202847;background:#f5f8ff}
+body{background:radial-gradient(ellipse at 90% 0%,#dce8ff 0,transparent 45%),radial-gradient(ellipse at 0% 28%,#fce9f4 0,transparent 38%),#f5f8ff;color:#202847}
+.shell{max-width:1230px;padding-top:26px}
+.top{padding:4px 2px 8px}.brand strong{font-size:19px;color:#202c54}.mark{background:linear-gradient(145deg,#4285fb,#8467e8);color:white;box-shadow:0 8px 24px #5669df3d}.brand-sub,.hint,.note{color:#697491}.tag{background:#fff;border:1px solid #dce5f8;color:#5464a2;font-weight:700;box-shadow:0 3px 14px #5167a010}
+.hero{isolation:isolate;background:linear-gradient(110deg,#fff 0%,#edf4ff 54%,#eee8ff 100%);border:1px solid #d7e3fa;border-radius:28px;box-shadow:0 22px 70px #7994d122;margin-top:24px}
+.hero:after{top:-95px;right:-90px;background:radial-gradient(circle,#b0d4ff80,transparent 68%);border:1px solid #8eb4f950;box-shadow:0 0 0 45px #b7cafd29,0 0 0 95px #a8c9fd14}
+.eyebrow,.kicker{color:#6875d5}.hero h1{color:#202d57;position:relative;z-index:1}.hero h1 em{color:#725ee7}.hero>p{color:#536284;position:relative;z-index:1}.hero .privacy{color:#6575a0}
+.panel{background:#fff;border:1px solid #dce5f5;border-radius:22px;box-shadow:0 14px 44px #6e88b219}
+h2{color:#27335a;font-weight:800;letter-spacing:-.55px}.editor label{color:#465477;font-weight:650}
+input,select{background:#f8faff;color:#233052;border:1px solid #d7e0f0;border-radius:12px;transition:border-color .18s,box-shadow .18s,background .18s}
+input:hover,select:hover{border-color:#aabbea}input:focus,select:focus{border-color:#7877e5;box-shadow:0 0 0 4px #797cea1b;background:#fff;outline:none}
+input::placeholder{color:#929cb3}input:focus-visible,select:focus-visible,button:focus-visible,.day:focus-visible{outline:3px solid #728bee;outline-offset:2px}
+.primary{background:linear-gradient(110deg,#557df0,#8265e8);color:#fff;box-shadow:0 8px 21px #6675df40;transition:transform .18s,box-shadow .18s}
+.primary:hover{transform:translateY(-2px);box-shadow:0 12px 26px #6675df55}.primary:active{transform:translateY(0)}
+.nav-btn{background:#f5f7ff;border-color:#dce3f3;color:#4a5d99;transition:background .15s,transform .15s}.nav-btn:hover{background:#e9efff;transform:translateY(-1px)}
+.jump-label{color:#5f6d8c}
+.summary>div{background:#f6f9ff;border:1px solid #e0e9fa}.summary span{color:#677691}.summary strong{color:#29355b}.summary>div:first-child{background:#effbf6;border-color:#d5f2e6}.summary>div:first-child strong{color:#0d8665}.summary>div:nth-child(2){background:#fff5f2;border-color:#fce3d9}.summary>div:nth-child(2) strong{color:#cb6850}.summary>.balance{background:linear-gradient(110deg,#edf3ff,#f3efff);border-color:#dee2fc}.balance strong{color:#5d5cbd}.balance strong.negative{color:#c83b50}
+.forecast-stat{background:#f4f7ff!important;border-color:#dfe7f6!important}.forecast-stat span{color:#667490!important}.forecast-stat strong{color:#29355b!important}.forecast-stat strong.negative{color:#c83b50!important}
+.weekdays{color:#7784a1;font-weight:700}.day{background:#f8faff;border:1px solid #e3e9f5;color:#2b3658;border-radius:12px;min-height:83px;transition:background .15s,border-color .15s,transform .15s,box-shadow .15s}
+.day:not(.outside):hover{background:#edf3ff;border-color:#aabef9;transform:translateY(-1px)}.day.today{border-color:#8ba9f2;box-shadow:inset 0 0 0 1px #8ba9f28a}.day.selected{border-color:#7969e6;background:linear-gradient(135deg,#eceeff,#f5efff);box-shadow:inset 0 0 0 1px #a5a0fc,0 4px 14px #8071d923}.day-number{font-weight:800}
+.mini{background:#dfe5fa;color:#4c5d95}.mini.inc{background:#dff7ec;color:#067955}.mini.exp{background:#ffe9df;color:#a94d33}
+.legend{color:#697691}.dot.income{background:#24b88a}.dot.expense{background:#f09068}
+.event{border:1px solid #e2e9f6;background:#f8faff;border-radius:14px}.event-name{color:#27335a}.event-meta{color:#7884a1}.amount.income{color:#128564}.amount.expense{color:#cf6951}.delete{background:#fff;border:1px solid #e5dbe8;color:#875578;transition:background .15s}.delete:hover{background:#fff0f3}
+.empty{color:#7c88a4}.event-panel .count{color:#7565b9;background:#f2efff;padding:7px 11px;border-radius:99px}
+.recurrence-tip{color:#7785a4}.editor .note{background:#f7f8ff;border-color:#e5e8f8}.error{color:#be3754}footer{color:#8994ac;text-align:center}
+@media(max-width:760px){.shell{padding:14px 12px 42px}.hero{border-radius:22px}.panel{border-radius:17px}.day{min-height:69px}.brand strong{font-size:17px}}
+@media(max-width:440px){.hero{padding:25px 21px}.hero h1{font-size:38px}.day{min-height:57px;padding:5px}.summary strong{font-size:20px}.month-head h2{font-size:20px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}

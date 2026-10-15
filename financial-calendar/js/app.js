@@ -53,6 +53,7 @@ $('openingBalance').addEventListener('change',()=>{
 });
 function render(){
  $('monthTitle').textContent=monthText(viewYear,viewMonth);
+ $('jumpMonth').value=monthKey();
  const monthEntries=occurrencesForMonth(viewYear,viewMonth);
  forecast(monthEntries);
  const income=monthEntries.filter(x=>x.type==='income').reduce((n,x)=>n+x.cents,0),expense=monthEntries.filter(x=>x.type==='expense').reduce((n,x)=>n+x.cents,0);
@@ -69,7 +70,7 @@ function render(){
   b.setAttribute('aria-pressed',String(key===selected));b.setAttribute('aria-label',dayText(key)+', поступлений: '+inc+', платежей: '+exp);
   const num=document.createElement('span');num.className='day-number';num.textContent=d;b.append(num);
   if(daily.length){const tags=document.createElement('span');tags.className='day-tags';if(inc){const a=document.createElement('span');a.className='mini inc';a.textContent='+'+inc;tags.append(a);}if(exp){const a=document.createElement('span');a.className='mini exp';a.textContent='−'+exp;tags.append(a);}b.append(tags);}
-  b.addEventListener('click',()=>{selected=key;render();});root.append(b);
+  b.addEventListener('click',()=>{selected=key;$('entryDate').value=key;render();});root.append(b);
  }
  $('selectedDayTitle').textContent=dayText(selected);
  const dayEntries=monthEntries.filter(x=>x.date===selected).sort((a,b)=>a.type.localeCompare(b.type,'ru')||a.name.localeCompare(b.name,'ru'));
@@ -84,7 +85,10 @@ $('entryForm').addEventListener('submit',e=>{e.preventDefault();$('formError').t
  if(!save([...entries,entry]))return;
  const [year,month]=date.split('-').map(Number);viewYear=year;viewMonth=month-1;selected=date;$('entryName').value='';$('entryAmount').value='';render();$('entryName').focus();
 });
-function shiftMonth(delta){const d=new Date(viewYear,viewMonth+delta,1);if(d.getFullYear()<1900||d.getFullYear()>2100)return;viewYear=d.getFullYear();viewMonth=d.getMonth();selected=dateKey(viewYear,viewMonth,1);render();}
-$('prevMonth').addEventListener('click',()=>shiftMonth(-1));$('nextMonth').addEventListener('click',()=>shiftMonth(1));$('todayMonth').addEventListener('click',()=>{viewYear=today.getFullYear();viewMonth=today.getMonth();selected=todayKey;render();});
+function pickMonth(y,m){if(!Number.isInteger(y)||y<1900||y>2100||!Number.isInteger(m)||m<0||m>11)return;viewYear=y;viewMonth=m;selected=dateKey(y,m,1);$('entryDate').value=selected;render();}
+$('jumpMonth').addEventListener('change',()=>{const v=$('jumpMonth').value;if(!/^(19\d{2}|20\d{2}|2100)-(0[1-9]|1[0-2])$/.test(v))return;const [y,m]=v.split('-').map(Number);pickMonth(y,m-1);});
+$('planSelected').addEventListener('click',()=>{$('entryDate').value=selected;$('entryName').focus();$('entryForm').scrollIntoView({behavior:'smooth',block:'center'});});
+function shiftMonth(delta){const d=new Date(viewYear,viewMonth+delta,1);if(d.getFullYear()<1900||d.getFullYear()>2100)return;pickMonth(d.getFullYear(),d.getMonth());}
+$('prevMonth').addEventListener('click',()=>shiftMonth(-1));$('nextMonth').addEventListener('click',()=>shiftMonth(1));$('todayMonth').addEventListener('click',()=>{viewYear=today.getFullYear();viewMonth=today.getMonth();selected=todayKey;$('entryDate').value=todayKey;render();});
 if(storageLocked)$('formError').textContent='Не удалось загрузить ранее сохранённые записи. Добавление заблокировано, чтобы не потерять их.';
 render();

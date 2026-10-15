@@ -1,0 +1,28 @@
+/* GPRO Calendar v0.5.1 — refinement of the APPROVED dark design.
+   Only micro-interactions, legibility and responsive polish.
+   Original colors, background, layout and component appearance remain intact. */
+:root{scroll-behavior:smooth}
+.hero,.panel{transition:box-shadow .22s ease,border-color .22s ease}
+.panel:hover{border-color:#68567f;box-shadow:0 15px 38px #090b1d45}
+.button,.nav-btn,.delete,.day{transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease,background-color .16s ease}
+.primary:hover{transform:translateY(-2px);box-shadow:0 8px 23px #e7a6c03e}
+.primary:active,.nav-btn:active,.day:active{transform:translateY(1px)}
+.nav-btn:hover{border-color:#b88cb9;background:#3d3255}
+.delete:hover{border-color:#c28aa3;background:#49334f}
+.day:not(.outside):hover{border-color:#b895c7;box-shadow:0 5px 15px #0d0d2740;transform:translateY(-1px)}
+.day.selected:hover{border-color:#ffc394}
+input,select{transition:border-color .15s ease,box-shadow .15s ease}
+input:hover,select:hover{border-color:#9778a3}
+input:focus,select:focus{border-color:#ffc794;box-shadow:0 0 0 3px #ffc7941b}
+.summary strong,.forecast-stat strong,.amount{font-variant-numeric:tabular-nums}
+.summary>div{transition:border-color .2s ease}
+.summary>div:hover{border-color:#85739b}
+.event{transition:border-color .18s ease,background-color .18s ease}
+.event:hover{border-color:#78628d;background:#302b49}
+.month-head h2,.selected-day-title{overflow-wrap:anywhere}
+.day{touch-action:manipulation}
+.event-name{line-height:1.45}
+button{touch-action:manipulation}
+@media(max-width:760px){.shell{overflow-x:hidden}.section-head{row-gap:12px}.summary strong{font-size:clamp(20px,4vw,28px)}}
+@media(max-width:440px){.top{gap:8px}.tag{font-size:10px;padding:7px 9px}.month-head{align-items:flex-start}.nav-btn{min-height:42px}.day{min-height:60px}.day-tags{max-width:100%}.mini{max-width:100%;overflow:hidden}.event-controls{gap:8px}.amount{font-size:16px}}
+@media(prefers-reduced-motion:reduce){:root{scroll-behavior:auto}*,*::before,*::after{transition-duration:0.01ms!important;animation-duration:0.01ms!important}}

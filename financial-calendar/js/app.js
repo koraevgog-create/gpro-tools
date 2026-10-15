@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id);
-const KEY='gpro-financial-calendar-v1';
+const KEY='gpro-financial-calendar-v1', BALANCE_KEY='gpro-financial-calendar-opening-v1';
 const fmt=n=>(n/100).toLocaleString('ru-RU',{style:'currency',currency:'RUB',minimumFractionDigits:0,maximumFractionDigits:2});
 const today=new Date(),dateKey=(y,m,d)=>String(y)+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
 const todayKey=dateKey(today.getFullYear(),today.getMonth(),today.getDate());
@@ -9,6 +9,8 @@ const validItem=x=>x&&typeof x.id==='string'&&x.id.length>0&&x.id.length<=120&&t
 let entries=[],storageLocked=false;
 try{const raw=localStorage.getItem(KEY);if(raw!==null){const data=JSON.parse(raw);if(!Array.isArray(data)||data.length>1000||!data.every(validItem)||new Set(data.map(x=>x.id)).size!==data.length)throw Error('corrupt');entries=data;}}catch{storageLocked=true;}
 let viewYear=today.getFullYear(),viewMonth=today.getMonth(),selected=todayKey;
+let openingBalances={},balanceLocked=false;
+try{const raw=localStorage.getItem(BALANCE_KEY);if(raw!==null){const data=JSON.parse(raw);if(!data||typeof data!=='object'||Array.isArray(data)||Object.keys(data).length>2400||!Object.entries(data).every(([k,v])=>/^\d{4}-\d{2}$/.test(k)&&Number.isSafeInteger(v)&&v>=0&&v<=1e11))throw Error('invalid');openingBalances=data;}}catch{balanceLocked=true;}
 $('entryDate').value=todayKey;
 const monthText=(y,m)=>new Intl.DateTimeFormat('ru-RU',{month:'long',year:'numeric'}).format(new Date(y,m,1));
 const dayText=s=>new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',year:'numeric'}).format(new Date(s+'T12:00:00'));
@@ -23,9 +25,35 @@ function occurrencesForMonth(y,m){
   return [{...item,date:dateKey(y,m,day),originId:item.id,recurring:true}];
  });
 }
+function monthKey(){return dateKey(viewYear,viewMonth,1).slice(0,7);}
+function forecast(monthEntries){
+ const key=monthKey(),opening=openingBalances[key],input=$('openingBalance');
+ input.value=opening===undefined?'':(opening/100).toFixed(2);
+ const end=$('closingBalance'),minimum=$('minimumBalance'),notice=$('forecastNotice');
+ if(opening===undefined){end.textContent='—';minimum.textContent='—';notice.textContent=balanceLocked?'Данные начальных остатков повреждены — сохранение заблокировано.':'Введи начальную сумму месяца, чтобы увидеть прогноз.';return;}
+ let balance=opening,min=balance,lowDay='';
+ const count=new Date(viewYear,viewMonth+1,0).getDate();
+ for(let day=1;day<=count;day++){
+  const date=dateKey(viewYear,viewMonth,day);
+  for(const item of monthEntries)if(item.date===date)balance+=item.type==='income'?item.cents:-item.cents;
+  if(balance<min){min=balance;lowDay=date;}
+ }
+ end.textContent=fmt(balance);minimum.textContent=fmt(min);
+ end.classList.toggle('negative',balance<0);minimum.classList.toggle('negative',min<0);
+ notice.textContent=min<0?'Внимание: по плану денег не хватит'+(lowDay?' к '+dayText(lowDay):'')+'. Возможный дефицит: '+fmt(-min)+'.':min===0?'Минимальный остаток равен нулю. Не забывай про незапланированные траты.':'По внесённым событиям отрицательного остатка не ожидается.';
+}
+$('openingBalance').addEventListener('change',()=>{
+ if(balanceLocked){$('forecastNotice').textContent='Хранилище начальных остатков повреждено, изменения заблокированы.';return;}
+ const raw=$('openingBalance').value.trim(),key=monthKey();
+ if(raw!==''&&(!Number.isFinite(Number(raw))||Number(raw)<0||Number(raw)>1e9||!Number.isSafeInteger(Math.round(Number(raw)*100)))){$('forecastNotice').textContent='Укажи сумму от 0 до 1 млрд ₽.';return;}
+ const next={...openingBalances};
+ if(raw==='')delete next[key];else next[key]=Math.round(Number(raw)*100);
+ try{localStorage.setItem(BALANCE_KEY,JSON.stringify(next));openingBalances=next;render();}catch{$('forecastNotice').textContent='Не удалось сохранить остаток в браузере.';}
+});
 function render(){
  $('monthTitle').textContent=monthText(viewYear,viewMonth);
  const monthEntries=occurrencesForMonth(viewYear,viewMonth);
+ forecast(monthEntries);
  const income=monthEntries.filter(x=>x.type==='income').reduce((n,x)=>n+x.cents,0),expense=monthEntries.filter(x=>x.type==='expense').reduce((n,x)=>n+x.cents,0);
  $('totalIncome').textContent=fmt(income);$('totalExpense').textContent=fmt(expense);
  $('totalBalance').textContent=fmt(income-expense);$('totalBalance').classList.toggle('negative',income<expense);

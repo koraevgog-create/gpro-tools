@@ -72,6 +72,7 @@ function render(){
   if(daily.length){const tags=document.createElement('span');tags.className='day-tags';if(inc){const a=document.createElement('span');a.className='mini inc';a.textContent='+'+inc;tags.append(a);}if(exp){const a=document.createElement('span');a.className='mini exp';a.textContent='−'+exp;tags.append(a);}b.append(tags);}
   b.addEventListener('click',()=>{selected=key;$('entryDate').value=key;render();});root.append(b);
  }
+ document.dispatchEvent(new Event('gpro:calendar-updated'));
  $('selectedDayTitle').textContent=dayText(selected);
  const dayEntries=monthEntries.filter(x=>x.date===selected).sort((a,b)=>a.type.localeCompare(b.type,'ru')||a.name.localeCompare(b.name,'ru'));
  $('eventsCount').textContent=dayEntries.length+' '+(dayEntries.length===1?'событие':'событий');

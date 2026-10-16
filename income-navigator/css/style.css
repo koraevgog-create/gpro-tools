@@ -50,3 +50,20 @@ html[data-theme=light] .econ-scenario span{color:#698785}
 html[data-theme=light] .economy-panel a{color:#866129}
 @media(max-width:900px){.economy-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.economy-fields,.scenario-economics{grid-template-columns:1fr}.economy-result .strategy-economics{grid-template-columns:1fr 1fr}}
+
+/* Stage 3: grounded local market validation */
+.regional-panel{border-color:#62887c}
+.region-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:17px 0}
+.region-report{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.region-report>.hint,.region-sources{grid-column:1/-1}
+.region-check{border:1px solid #4b7378;background:#24424b;border-radius:13px;padding:17px}
+.region-check strong{color:#f1d0a0}
+.region-check p{font-size:13px;line-height:1.7;color:#c6d9da;margin:9px 0 0}
+.region-sources{display:flex;gap:10px;flex-wrap:wrap}
+.region-sources a{padding:10px 13px;background:#295158;border:1px solid #5b8485;border-radius:11px;color:#f4dcba;text-decoration:none;font-size:12px}
+html[data-theme=light] .regional-panel{border-color:#cde1d3}
+html[data-theme=light] .region-check{background:#f5faf4;border-color:#cddfd4}
+html[data-theme=light] .region-check strong{color:#916a3c}
+html[data-theme=light] .region-check p{color:#6a8280}
+html[data-theme=light] .region-sources a{background:#edf6ee;border-color:#d0e0d2;color:#516f6b}
+@media(max-width:780px){.region-controls,.region-report{grid-template-columns:1fr}}

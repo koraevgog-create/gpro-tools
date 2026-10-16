@@ -4,6 +4,7 @@ const KEY='gpro-financial-calendar-v1', BALANCE_KEY='gpro-financial-calendar-ope
 const fmt=n=>(n/100).toLocaleString('ru-RU',{style:'currency',currency:'RUB',minimumFractionDigits:0,maximumFractionDigits:2});
 const today=new Date(),dateKey=(y,m,d)=>String(y)+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
 const todayKey=dateKey(today.getFullYear(),today.getMonth(),today.getDate());
+const viewSafeYear=d=>d.getFullYear();
 const validDate=s=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const [y,m,d]=s.split('-').map(Number);const t=new Date(y,m-1,d);return y>=1900&&y<=2100&&t.getFullYear()===y&&t.getMonth()===m-1&&t.getDate()===d;};
 const validItem=x=>x&&typeof x.id==='string'&&x.id.length>0&&x.id.length<=120&&typeof x.name==='string'&&x.name.trim().length>0&&x.name.length<=80&&['income','expense'].includes(x.type)&&Number.isSafeInteger(x.cents)&&x.cents>0&&x.cents<=100000000000&&validDate(x.date)&&(x.skips===undefined||(Array.isArray(x.skips)&&x.skips.length<=2000&&x.skips.every(validDate)&&new Set(x.skips).size===x.skips.length))&&(x.repeat===undefined||['once','monthly','weekly'].includes(x.repeat));
 let entries=[],storageLocked=false,editingId=null;
@@ -18,7 +19,7 @@ function save(next){if(storageLocked){$('formError').textContent='В брауз�
 function occurrencesForMonth(y,m){
  const first=dateKey(y,m,1),lastDay=new Date(y,m+1,0).getDate(),prefix=first.slice(0,7);
  return entries.flatMap(item=>{
-  if(item.repeat==='weekly'){const start=new Date(item.date+'T12:00:00'),firstDate=new Date(first+'T12:00:00');let offset=Math.max(0,Math.ceil((firstDate-start)/86400000/7));const results=[];for(let k=offset;k<offset+6;k++){const d=new Date(start);d.setDate(start.getDate()+7*k);const key=dateKey(d.getFullYear(),d.getMonth(),d.getDate());if(key.startsWith(prefix)&&key>=item.date&&!(item.skips||[]).includes(key))results.push({...item,date:key,originId:item.id,recurring:true});if(d.getFullYear()>y||(d.getFullYear()===y&&d.getMonth()>m))break;}return results;}
+  if(item.repeat==='weekly'){const start=new Date(item.date+'T12:00:00'),firstDate=new Date(first+'T12:00:00');let offset=Math.max(0,Math.ceil((Date.UTC(viewSafeYear(firstDate),firstDate.getMonth(),firstDate.getDate())-Date.UTC(viewSafeYear(start),start.getMonth(),start.getDate()))/604800000));const results=[];for(let k=offset;k<offset+6;k++){const d=new Date(start);d.setDate(start.getDate()+7*k);const key=dateKey(d.getFullYear(),d.getMonth(),d.getDate());if(key.startsWith(prefix)&&key>=item.date&&!(item.skips||[]).includes(key))results.push({...item,date:key,originId:item.id,recurring:true});if(d.getFullYear()>y||(d.getFullYear()===y&&d.getMonth()>m))break;}return results;}
   if(item.repeat!=='monthly')return item.date.startsWith(prefix)?[{...item,originId:item.id,recurring:false}]:[];
   if(item.date>dateKey(y,m,lastDay))return [];
   const sourceDay=Number(item.date.slice(8));

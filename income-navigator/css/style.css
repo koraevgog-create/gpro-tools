@@ -67,3 +67,21 @@ html[data-theme=light] .region-check strong{color:#916a3c}
 html[data-theme=light] .region-check p{color:#6a8280}
 html[data-theme=light] .region-sources a{background:#edf6ee;border-color:#d0e0d2;color:#516f6b}
 @media(max-width:780px){.region-controls,.region-report{grid-template-columns:1fr}}
+
+/* Stage 4: actionable 90-day launch map */
+.ninety-panel{border-color:#689888}
+.plan-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}
+.ninety-timeline{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin:19px 0}
+.ninety-week{border:1px solid #507c7c;background:#24434b;border-radius:14px;padding:17px;display:flex;align-items:flex-start;gap:12px}
+.ninety-week>input{width:21px;height:21px;min-height:21px;flex:0 0 21px;margin:2px 0;accent-color:#f1c68a;cursor:pointer}
+.ninety-week strong{font-size:13px;line-height:1.5;display:block;color:#f1d3a8}
+.ninety-week small{font-size:11px;color:#adcecb;margin-top:6px;display:block}
+.ninety-week p{color:#cbdedb;font-size:12px;line-height:1.65;margin:9px 0 0}
+.ninety-decision{border-top:1px solid #64837c;padding-top:14px;margin-top:16px}
+.ninety-decision h3{font-size:18px}
+html[data-theme=light] .ninety-panel{border-color:#c6dfcf}
+html[data-theme=light] .ninety-week{background:#f4faf5;border-color:#cde2d5}
+html[data-theme=light] .ninety-week strong{color:#8e6946}
+html[data-theme=light] .ninety-week small,html[data-theme=light] .ninety-week p{color:#657f7e}
+html[data-theme=light] .ninety-decision{border-color:#d3e2d5}
+@media(max-width:780px){.plan-controls,.ninety-timeline{grid-template-columns:1fr}}

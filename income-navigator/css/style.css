@@ -85,3 +85,21 @@ html[data-theme=light] .ninety-week strong{color:#8e6946}
 html[data-theme=light] .ninety-week small,html[data-theme=light] .ninety-week p{color:#657f7e}
 html[data-theme=light] .ninety-decision{border-color:#d3e2d5}
 @media(max-width:780px){.plan-controls,.ninety-timeline{grid-template-columns:1fr}}
+
+/* Stage 5 — explainable ranking */
+.intelligence-panel{border-color:#7e9b8e;background:linear-gradient(130deg,#203b45,#203640)}
+.intelligence-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}
+.smart-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:15px}
+.smart-card{padding:19px;border:1px solid #6c8e89;border-radius:14px;background:#2b4650;display:flex;flex-direction:column;gap:10px}
+.smart-card h3{font-size:17px;color:#f2d7b3;margin:0}
+.smart-verdict{font-size:12px;color:#b5e7d1}
+.smart-card p,.smart-card li{font-size:12px;line-height:1.65;color:#d0dfdb}
+.smart-card p{margin:0}.smart-card ul{margin:0;padding-left:18px}
+.smart-card button{margin-top:auto;align-self:flex-start;background:#f0cd9b;border:0;border-radius:10px;padding:11px 13px;color:#285058;font-weight:800}
+#smartAdvice{padding-top:16px}
+html[data-theme=light] .intelligence-panel{background:#fff;border-color:#c8dfd3}
+html[data-theme=light] .smart-card{background:#f5faf7;border-color:#d1e2d8}
+html[data-theme=light] .smart-card h3{color:#537267}
+html[data-theme=light] .smart-verdict{color:#37806a}
+html[data-theme=light] .smart-card p,html[data-theme=light] .smart-card li{color:#627e7b}
+@media(max-width:780px){.smart-results,.intelligence-controls{grid-template-columns:1fr}}

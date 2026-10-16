@@ -15,7 +15,7 @@ function eventsForMonth(items,y,m){
   const skips=Array.isArray(e.skips)?e.skips:[];
   if(e.repeat==='weekly'){
    const start=new Date(e.date+'T12:00:00'),begin=new Date(first+'T12:00:00');
-   const n=Math.max(0,Math.ceil((begin-start)/604800000));
+   const n=Math.max(0,Math.ceil((Date.UTC(begin.getFullYear(),begin.getMonth(),begin.getDate())-Date.UTC(start.getFullYear(),start.getMonth(),start.getDate()))/604800000));
    for(let k=n;k<n+6;k++){
     const d=new Date(start);d.setDate(d.getDate()+k*7);const key=date(d.getFullYear(),d.getMonth(),d.getDate());
     if(key>end)break;

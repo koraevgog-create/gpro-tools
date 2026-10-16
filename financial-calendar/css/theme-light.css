@@ -1,0 +1,55 @@
+/* Light theme only: approved original GPRO dark theme stays unchanged. */
+html[data-theme="light"]{color-scheme:light;background:#f7f3fb;color:#2b2441}
+html[data-theme="light"] body{color:#2b2441;background:radial-gradient(ellipse at 86% 10%,#f1e0f5 0%,transparent 45%),#f7f3fb}
+html[data-theme="light"] .brand strong,html[data-theme="light"] h2{color:#352747}
+html[data-theme="light"] .brand-sub,html[data-theme="light"] .hint,html[data-theme="light"] .note{color:#6e617c}
+html[data-theme="light"] .tag{border-color:#d8c4df;color:#745e82;background:#fff8ff}
+html[data-theme="light"] .hero{background:linear-gradient(115deg,#f9ebfc,#efe8fb 63%,#e7f2fa);border-color:#dec2e6;box-shadow:0 24px 65px #8264a526}
+html[data-theme="light"] .hero:after{border-color:#c18ed638;box-shadow:0 0 0 37px #d7b1e122,0 0 0 82px #e7c4e323}
+html[data-theme="light"] .hero h1{color:#352247}
+html[data-theme="light"] .hero h1 em{color:#8652a2}
+html[data-theme="light"] .hero>p,html[data-theme="light"] .hero .privacy{color:#64516f}
+html[data-theme="light"] .eyebrow,html[data-theme="light"] .kicker{color:#a05b8d}
+html[data-theme="light"] .panel{background:#fffafd;border-color:#e4d3ec;box-shadow:0 12px 32px #75619516}
+html[data-theme="light"] .panel:hover{border-color:#cba8d7;box-shadow:0 15px 38px #8e69a326}
+html[data-theme="light"] .editor label,html[data-theme="light"] .jump-label{color:#594866}
+html[data-theme="light"] input,html[data-theme="light"] select{background:#fff;color:#342b43;border-color:#d6c4df}
+html[data-theme="light"] input::placeholder{color:#95859e}
+html[data-theme="light"] input:hover,html[data-theme="light"] select:hover{border-color:#b794c7}
+html[data-theme="light"] input:focus,html[data-theme="light"] select:focus{border-color:#965eb0;box-shadow:0 0 0 3px #965eb022}
+html[data-theme="light"] .nav-btn,html[data-theme="light"] .backup-import,html[data-theme="light"] .event-controls .edit{background:#f3e9f6;color:#654579;border-color:#d6bbdf}
+html[data-theme="light"] .nav-btn:hover,html[data-theme="light"] .backup-import:hover,html[data-theme="light"] .event-controls .edit:hover{background:#e9d9f0;border-color:#bc91c9}
+html[data-theme="light"] .summary>div,html[data-theme="light"] .outlook-card{background:#f8f2fb;border-color:#e4d5ed}
+html[data-theme="light"] .summary span,html[data-theme="light"] .outlook-card span{color:#776582}
+html[data-theme="light"] .summary strong,html[data-theme="light"] .outlook-card strong{color:#493553}
+html[data-theme="light"] .summary>div:first-child strong,html[data-theme="light"] .amount.income,html[data-theme="light"] .outlook-net{color:#147b5b}
+html[data-theme="light"] .summary>div:nth-child(2) strong,html[data-theme="light"] .amount.expense,html[data-theme="light"] .upcoming-row strong{color:#b45142}
+html[data-theme="light"] .summary>.balance{background:linear-gradient(120deg,#f1e5f7,#eceafa)}
+html[data-theme="light"] .balance strong{color:#754598}
+html[data-theme="light"] .balance strong.negative,html[data-theme="light"] .outlook-net.negative{color:#b53b49}
+html[data-theme="light"] .weekdays,html[data-theme="light"] .legend,html[data-theme="light"] .event-meta,html[data-theme="light"] .recurrence-tip{color:#7d6a89}
+html[data-theme="light"] .day{background:#faf5fd;border-color:#e8d8ed;color:#4e375a}
+html[data-theme="light"] .day.today{border-color:#b77bcc}
+html[data-theme="light"] .day.selected{border-color:#a96abf;background:#f1e0f7;box-shadow:inset 0 0 0 1px #b47ac766}
+html[data-theme="light"] .day:not(.outside):hover{border-color:#be8ed1;box-shadow:0 5px 15px #86709c25}
+html[data-theme="light"] .mini.inc{background:#d7f4e7;color:#116e54}
+html[data-theme="light"] .mini.exp{background:#ffe4de;color:#a34437}
+html[data-theme="light"] .event,html[data-theme="light"] .upcoming-row{background:#faf5fd;border-color:#e6d7ed;color:#4b3959}
+html[data-theme="light"] .event:hover{background:#f4eafa;border-color:#c9add4}
+html[data-theme="light"] .event-name,html[data-theme="light"] .upcoming-row span{color:#493751}
+html[data-theme="light"] .delete{background:#fff1f3;color:#a13d53;border-color:#eac6cd}
+html[data-theme="light"] .delete:hover{background:#ffe3e9;border-color:#d992a3}
+html[data-theme="light"] .empty,html[data-theme="light"] footer{color:#84718f}
+html[data-theme="light"] .event-panel .count{color:#9259a7}
+html[data-theme="light"] .editor .note{background:#f6edfa;border-color:#e4d4ee}
+html[data-theme="light"] .forecast-stat{background:#f8f2fb;border-color:#e4d5ed;color:#554262}
+html[data-theme="light"] .forecast-stat span{color:#7a6683}
+html[data-theme="light"] .forecast-stat strong{color:#4d365b}
+html[data-theme="light"] .forecast-stat strong.negative{color:#bc3e52}
+html[data-theme="light"] .forecast-notice{color:#674d70}
+.theme-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid #62557c;background:#302b49;color:#f7e5ff;border-radius:25px;padding:8px 12px;min-height:38px;cursor:pointer;font-weight:700;font-size:12px}
+.theme-toggle:hover{border-color:#deb0dc;background:#413254}
+html[data-theme="light"] .theme-toggle{background:#fff8ff;border-color:#d8c4df;color:#654579}
+html[data-theme="light"] .theme-toggle:hover{background:#f0e5f6}
+@media(max-width:460px){.top{flex-wrap:wrap}.theme-toggle{margin-left:auto}}
+@media(prefers-reduced-motion:reduce){.theme-toggle{transition:none}}

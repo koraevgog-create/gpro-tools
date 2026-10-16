@@ -3,8 +3,10 @@
 const $=id=>document.getElementById(id),PLAN='gpro-paycheck-plan-v1',OLD='gpro-paycheck-advanced-v1';
 const money=c=>(c/100).toLocaleString('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:2});
 const validDate=s=>{if(typeof s!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const [y,m,d]=s.split('-').map(Number),t=new Date(y,m-1,d);return y>=1900&&y<=2100&&t.getFullYear()===y&&t.getMonth()===m-1&&t.getDate()===d;};
-const safeMoney=v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=1e9;
+const safeMoney=v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=1e9&&Math.round(v*100)/100===v;
 const validPlan=p=>p&&typeof p==='object'&&!Array.isArray(p)&&['available','bills','reserve'].every(k=>safeMoney(p[k]))&&validDate(p.payday);
+const validLegacyRecord=r=>r&&typeof r==='object'&&typeof r.id==='string'&&r.id.length>0&&r.id.length<=120&&typeof r.name==='string'&&r.name.trim().length>0&&r.name.length<=80&&Number.isSafeInteger(r.amount)&&r.amount>0&&r.amount<=1e11&&validDate(r.date);
+const validLegacy=v=>v&&typeof v==='object'&&!Array.isArray(v)&&Array.isArray(v.transactions)&&Array.isArray(v.bills)&&v.transactions.length<=1000&&v.bills.length<=500&&v.transactions.every(r=>validLegacyRecord(r)&&['income','expense'].includes(r.type)&&typeof r.category==='string')&&v.bills.every(validLegacyRecord)&&new Set([...v.transactions,...v.bills].map(r=>r.id)).size===v.transactions.length+v.bills.length;
 function daysLeft(s){if(!validDate(s))return 0;const [y,m,d]=s.split('-').map(Number),n=new Date();return Math.round((Date.UTC(y,m-1,d)-Date.UTC(n.getFullYear(),n.getMonth(),n.getDate()))/86400000);}
 function readPlan(){try{const p=JSON.parse(localStorage.getItem(PLAN)||'null');return validPlan(p)?p:null;}catch{return null;}}
 function render(){const p=readPlan(),root=$('scenarios');root.replaceChildren();const advice=$('shortageAdvice'),days=p?daysLeft(p.payday):0;
@@ -15,16 +17,16 @@ advice.classList.toggle('warn',free<0);advice.textContent=free<0?'Не хват�
 }
 document.addEventListener('gpro:paycheck-updated',render);
 $('quickForm').addEventListener('submit',e=>{e.preventDefault();const p=readPlan(),value=$('quickAmount').value,number=Number(value);
-if(!p){$('quickStatus').textContent='Сначала сохрани основной план.';return;}if(!value||!Number.isFinite(number)||number<=0||number>1e9||Math.round(number*100)<1){$('quickStatus').textContent='Укажи сумму больше нуля.';return;}
+if(!p){$('quickStatus').textContent='Сначала сохрани основной план.';return;}if(!value||!Number.isFinite(number)||number<=0||number>1e9||Math.round(number*100)<1||Math.round(number*100)/100!==number){$('quickStatus').textContent='Укажи сумму больше нуля.';return;}
 const sign=$('quickType').value==='expense'?-1:1;
 const next=Math.round(p.available*100)+sign*Math.round(number*100);
 if(next<0||next>1e11){$('quickStatus').textContent='Получается отрицательный остаток или сумма выше допустимого предела. Уточни текущий остаток вручную.';return;}
 const amount=next/100;const oldValue=$('available').value;$('available').value=amount.toFixed(2);$('plan').requestSubmit();
-if($('error').textContent){$('available').value=oldValue;$('quickStatus').textContent='Сначала исправь ошибки в основном плане.';return;}
+if($('error').textContent){$('available').value=oldValue;$('quickStatus').textContent='Не удалось применить операцию: '+$('error').textContent;return;}
 $('quickAmount').value='';$('quickStatus').textContent='Остаток обновлён: '+money(next)+'. Дневной лимит пересчитан.';render();
 });
 $('downloadBackup').addEventListener('click',()=>{
-try{const planRaw=localStorage.getItem(PLAN),oldRaw=localStorage.getItem(OLD),plan=planRaw===null?null:JSON.parse(planRaw),legacy=oldRaw===null?null:JSON.parse(oldRaw);if(plan!==null&&!validPlan(plan))throw Error('Основной план повреждён.');if(legacy!==null&&(typeof legacy!=='object'||Array.isArray(legacy)))throw Error('Архив операций повреждён.');
+try{const planRaw=localStorage.getItem(PLAN),oldRaw=localStorage.getItem(OLD),plan=planRaw===null?null:JSON.parse(planRaw),legacy=oldRaw===null?null:JSON.parse(oldRaw);if(plan!==null&&!validPlan(plan))throw Error('Основной план повреждён.');if(legacy!==null&&!validLegacy(legacy))throw Error('Архив операций повреждён.');
 const payload={format:'gpro-paycheck-backup',version:2,createdAt:new Date().toISOString(),plan,legacy};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='gpro-paycheck-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);$('backupStatus').textContent='Копия сформирована, включая старые записи при их наличии.';
 }catch(e){$('backupStatus').textContent='Не удалось создать копию: '+e.message;}
 });
@@ -33,7 +35,7 @@ const file=e.target.files?.[0];e.target.value='';if(!file)return;
 try{if(file.size>3000000)throw Error('Размер файла превышает 3 МБ.');const b=JSON.parse(await file.text());if(!b||b.format!=='gpro-paycheck-backup'||![1,2].includes(b.version))throw Error('Неверный формат файла.');
 const plan=b.plan??null;if(plan!==null&&!validPlan(plan))throw Error('Некорректные данные плана.');
 const legacy=b.version===2?b.legacy:(Array.isArray(b.transactions)&&Array.isArray(b.bills)?{transactions:b.transactions,bills:b.bills}:null);
-if(legacy!==null&&(!legacy||typeof legacy!=='object'||Array.isArray(legacy)||!Array.isArray(legacy.transactions)||!Array.isArray(legacy.bills)||legacy.transactions.length>1000||legacy.bills.length>500))throw Error('Некорректный архив записей.');
+if(legacy!==null&&!validLegacy(legacy))throw Error('Некорректный архив записей.');
 if(!confirm('Восстановить данные? Текущий план будет заменён. Сначала рекомендуем скачать действующую резервную копию.'))return;
 const previousPlan=localStorage.getItem(PLAN),previousLegacy=localStorage.getItem(OLD);
 try{if(plan===null)localStorage.removeItem(PLAN);else localStorage.setItem(PLAN,JSON.stringify(plan));if(legacy!==null)localStorage.setItem(OLD,JSON.stringify(legacy));}

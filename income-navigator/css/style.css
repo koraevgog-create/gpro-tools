@@ -103,3 +103,59 @@ html[data-theme=light] .smart-card h3{color:#537267}
 html[data-theme=light] .smart-verdict{color:#37806a}
 html[data-theme=light] .smart-card p,html[data-theme=light] .smart-card li{color:#627e7b}
 @media(max-width:780px){.smart-results,.intelligence-controls{grid-template-columns:1fr}}
+
+/* v0.8.1 — Focused six-step entrepreneurial journey */
+[hidden]{display:none!important}
+.wizard-shell{max-width:1080px}
+.wizard-hero{margin:23px 0 19px;padding:clamp(28px,5vw,49px);border-radius:23px;border:1px solid #4d8b8b;background:linear-gradient(120deg,#173e4b,#204f55 70%,#2e5662)}
+.wizard-hero h1{font-size:clamp(34px,5vw,59px);letter-spacing:-1.7px;line-height:1.12;margin:15px 0}
+.wizard-hero h1 em{color:#f8c891;font-style:normal}
+.wizard-hero p{max-width:720px;color:#d0e7e3;line-height:1.7}
+.wizard-steps{display:flex;gap:9px;align-items:center;margin-top:27px}
+.wizard-dot{width:36px;height:36px;border-radius:50%;border:1px solid #638e90;background:#25515a;color:#c5dad9}
+.wizard-dot.active{background:#ffca8c;color:#263e43;border-color:#ffca8c;font-weight:900}
+.wizard-dot.passed{border-color:#85baa9;color:#e2f3e8}
+.wizard-dot:disabled{opacity:.45;cursor:default}
+.wizard-body{background:#192f3d;border:1px solid #3c6672;padding:clamp(19px,3.5vw,34px);border-radius:21px;min-height:370px}
+.wizard-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:20px}
+.wizard-heading h2{font-size:clamp(24px,3vw,32px);margin:8px 0}
+.wizard-heading .hint{max-width:680px}
+.wizard-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+.wizard-stage{min-height:200px}
+.wizard-actions{display:flex;justify-content:space-between;gap:12px;margin-top:23px;padding-top:20px;border-top:1px solid #4a6d73}
+.wizard-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}
+.wizard-idea{background:#23414a;border:1px solid #4d7375;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:9px}
+.wizard-idea.picked{border-color:#f3c487;box-shadow:0 0 0 1px #e6b97a}
+.wizard-idea h3{font-size:18px;margin:0;color:#f9d9ad}
+.wizard-idea p{margin:0}
+.wizard-idea button{align-self:flex-start;margin-top:auto}
+.wizard-signal{color:#99d3bf;font-size:12px}
+.wizard-disclosure{background:#233f49;border:1px solid #4d777b;border-radius:13px;margin:11px 0;padding:15px 17px}
+.wizard-disclosure summary{cursor:pointer;font-weight:780;color:#f4d3a6}
+.wizard-disclosure p{color:#cadedd;line-height:1.7;font-size:13px}
+.wizard-fin-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:18px 0}
+.wizard-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.wizard-stat{background:#264650;border:1px solid #527a79;padding:18px;border-radius:12px}
+.wizard-stat span{color:#bdd5d2;font-size:12px;display:block}
+.wizard-stat strong{display:block;font-size:21px;overflow-wrap:anywhere;margin-top:8px}
+.week-content label{display:flex;align-items:center;gap:12px}
+.week-content input{width:19px;height:19px;min-height:19px}
+.wizard-summary{border-bottom:1px solid #47646b;padding:16px 0}
+.wizard-summary strong{color:#f0cf9c}
+.wizard-summary p{line-height:1.7;color:#d0e2df;font-size:14px}
+html[data-theme=light] .wizard-hero{background:linear-gradient(120deg,#e9f3e1,#d7f0e7 70%,#e4f1eb);border-color:#c4ddd1}
+html[data-theme=light] .wizard-hero h1{color:#275d60}
+html[data-theme=light] .wizard-hero h1 em{color:#ad783b}
+html[data-theme=light] .wizard-hero p{color:#607e7c}
+html[data-theme=light] .wizard-body{background:#fff;border-color:#d2e4da}
+html[data-theme=light] .wizard-dot{background:#e4f1e7;color:#46736e;border-color:#c5ddd1}
+html[data-theme=light] .wizard-dot.active{background:#ffdfa8;color:#426264;border-color:#e4c08a}
+html[data-theme=light] .wizard-idea,html[data-theme=light] .wizard-disclosure,html[data-theme=light] .wizard-stat{background:#f5faf6;border-color:#ccdfd4}
+html[data-theme=light] .wizard-idea.picked{border-color:#cb985a}
+html[data-theme=light] .wizard-idea h3,html[data-theme=light] .wizard-disclosure summary,html[data-theme=light] .wizard-summary strong{color:#986e3c}
+html[data-theme=light] .wizard-signal{color:#38866d}
+html[data-theme=light] .wizard-disclosure p,html[data-theme=light] .wizard-summary p{color:#647e79}
+html[data-theme=light] .wizard-stat span{color:#68847f}
+html[data-theme=light] .wizard-actions,html[data-theme=light] .wizard-summary{border-color:#d4e4d8}
+@media(max-width:740px){.wizard-form,.wizard-card-grid,.wizard-fin-grid{grid-template-columns:1fr}.wizard-heading{flex-direction:column}.wizard-stats{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.wizard-body{padding:17px}.wizard-dot{width:31px;height:31px}.wizard-steps{gap:6px}.wizard-actions button{padding:11px 13px}.wizard-stats{grid-template-columns:1fr}}

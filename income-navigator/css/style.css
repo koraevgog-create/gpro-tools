@@ -159,3 +159,12 @@ html[data-theme=light] .wizard-stat span{color:#68847f}
 html[data-theme=light] .wizard-actions,html[data-theme=light] .wizard-summary{border-color:#d4e4d8}
 @media(max-width:740px){.wizard-form,.wizard-card-grid,.wizard-fin-grid{grid-template-columns:1fr}.wizard-heading{flex-direction:column}.wizard-stats{grid-template-columns:1fr 1fr}}
 @media(max-width:480px){.wizard-body{padding:17px}.wizard-dot{width:31px;height:31px}.wizard-steps{gap:6px}.wizard-actions button{padding:11px 13px}.wizard-stats{grid-template-columns:1fr}}
+
+/* v0.8.7 – legibility improvements */
+.wizard-heading .hint,.wizard-stage>.hint,.wizard-disclosure p,.wizard-intro{font-size:15px;line-height:1.78}
+.wizard-idea .hint,.wizard-idea .wizard-signal{font-size:14px;line-height:1.55}
+.wizard-disclosure summary{font-size:16px;line-height:1.5}
+.wizard-intro{background:#294d51;padding:15px;border-radius:13px}
+.idea-toggle{margin:8px 0 16px}
+.wizard-disclosure p,.wizard-summary p{white-space:pre-line}
+html[data-theme=light] .wizard-intro{background:#e9f5ed;color:#496b64}

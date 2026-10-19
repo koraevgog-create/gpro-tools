@@ -168,3 +168,6 @@ html[data-theme=light] .wizard-actions,html[data-theme=light] .wizard-summary{bo
 .idea-toggle{margin:8px 0 16px}
 .wizard-disclosure p,.wizard-summary p{white-space:pre-line}
 html[data-theme=light] .wizard-intro{background:#e9f5ed;color:#496b64}
+
+/* v0.9.2 — finance transparency */
+.calc-line{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid #527079;font-size:14px;line-height:1.5}.calc-line strong{text-align:right;white-space:nowrap}.calc-line span{flex:1}.plan-diagnostics{margin:20px 0}.plan-diagnostics h3{font-size:20px;margin:18px 0 10px}html[data-theme=light] .calc-line{border-color:#dce7df}@media(max-width:540px){.calc-line{font-size:13px}.calc-line strong{white-space:normal}}

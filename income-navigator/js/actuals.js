@@ -1,0 +1,25 @@
+'use strict';
+window.GPRO_ACTUALS=(()=>{
+const KEY='gpro-income-actuals-v1';
+const fmt=n=>Math.round(n).toLocaleString('ru-RU')+' ₽';
+const safe=n=>Number.isFinite(Number(n))?Number(n):0;
+let records=[];
+try{const saved=JSON.parse(localStorage.getItem(KEY)||'[]');if(Array.isArray(saved))records=saved.filter(x=>x&&typeof x.model==='string').slice(-2000)}catch{}
+function store(){try{localStorage.setItem(KEY,JSON.stringify(records))}catch{}}
+function el(tag,txt){const node=document.createElement(tag);if(txt!==undefined)node.textContent=txt;return node}
+function render(model,plan){const host=document.getElementById('actualJournal');if(!host)return;host.replaceChildren();if(!model){host.append(el('p','Выбери направление для учёта фактических операций.'));return}
+const title=el('h3','Журнал фактических операций — '+model.title);host.append(title);
+host.append(el('p','Каждая строка — одна оплаченная операция или отдельный расход. Выручка, закупка/материалы, реклама, прочие расходы и часы вводятся самостоятельно. Записи сохраняются только в этом браузере. Не включай одни и те же затраты дважды.'));
+const fields=[['date','Дата','date'],['note','Описание операции','text'],['revenue','Поступления, ₽','number'],['variable','Закупка / материалы, ₽','number'],['ads','Реклама, ₽','number'],['other','Прочие расходы, ₽','number'],['hours','Часы работы','number']];const form=el('form'),grid=el('div');grid.className='wizard-fin-grid';const inputs={};for(const [id,label,type] of fields){const wrap=el('label',label),input=el('input');input.type=type;input.required=id==='date'||id==='note';input.min=type==='number'?'0':undefined;if(type==='number'){input.step=id==='hours'?'0.25':'1';input.value='0'}if(id==='date')input.value=new Date().toISOString().slice(0,10);input.maxLength=id==='note'?180:undefined;wrap.append(input);grid.append(wrap);inputs[id]=input}form.append(grid);
+const saveBtn=el('button','Добавить операцию');saveBtn.type='submit';saveBtn.className='primary';form.append(saveBtn);
+const error=el('p');error.className='hint';form.append(error);host.append(form);
+form.onsubmit=e=>{e.preventDefault();const row={id:Date.now()+'-'+Math.random().toString(36).slice(2),model:model.id,date:inputs.date.value,note:inputs.note.value.trim().slice(0,180)};for(const key of ['revenue','variable','ads','other','hours']){row[key]=safe(inputs[key].value);if(!Number.isFinite(row[key])||row[key]<0){error.textContent='Значения должны быть неотрицательными';return}}if(!row.date||!row.note){error.textContent='Нужны дата и описание';return}records.push(row);records=records.slice(-2000);store();render(model,plan)};
+const current=records.filter(x=>x.model===model.id).sort((a,b)=>b.date.localeCompare(a.date)),sum=k=>current.reduce((a,x)=>a+safe(x[k]),0),rev=sum('revenue'),variable=sum('variable'),ads=sum('ads'),other=sum('other'),margin=rev-variable-ads-other,hrs=sum('hours');
+const summary=el('div');summary.className='wizard-stats';for(const [key,val]of [['Записей',String(current.length)],['Получено',fmt(rev)],['Расходы по записям',fmt(variable+ads+other)],['Остаток до фиксированных расходов и налогов',fmt(margin)],['Отработано часов',String(Math.round(hrs*10)/10)]]){const box=el('div');box.className='wizard-stat';box.append(el('span',key),el('strong',val));summary.append(box)}host.append(summary);
+host.append(el('p','Это фактический денежный остаток по введённым операциям, а не чистая прибыль: регулярные расходы, налоги, неоплаченные обязательства и стоимость непроданных запасов нужно сверять отдельно. Плановый операционный результат за полный месяц: '+fmt(plan?.operatingProfit||0)+'. Сравнение корректно только за одинаковый период и при полном учёте операций.'));
+const scroll=el('div');scroll.style.overflowX='auto';const table=el('table');table.style.minWidth='690px';const head=el('tr');for(const t of ['Дата','Операция','Поступления','Расходы','Остаток',''])head.append(el('th',t));table.append(head);
+for(const x of current.slice(0,100)){const tr=el('tr');for(const t of [x.date,x.note,fmt(x.revenue),fmt(x.variable+x.ads+x.other),fmt(x.revenue-x.variable-x.ads-x.other)])tr.append(el('td',t));const td=el('td'),del=el('button','Удалить');del.type='button';del.className='secondary';del.onclick=()=>{if(!confirm('Удалить эту операцию?'))return;records=records.filter(y=>y.id!==x.id);store();render(model,plan)};td.append(del);tr.append(td);table.append(tr)}scroll.append(table);host.append(scroll);if(current.length>100)host.append(el('p','Показаны последние 100 записей; CSV включает все.'));
+const download=el('button','Экспорт операций CSV');download.type='button';download.className='secondary';download.onclick=()=>{const columns=['date','note','revenue','variable','ads','other','hours'];const csv='\uFEFF'+[columns.join(';'),...current.map(x=>columns.map(k=>'"'+String(x[k]??'').replaceAll('"','""')+'"').join(';'))].join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=el('a');a.href=url;a.download='gpro-actuals-'+model.id+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};host.append(download);
+}
+return{render};
+})();
